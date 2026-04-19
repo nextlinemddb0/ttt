@@ -28,11 +28,73 @@ const fkontak = {
     },
 };
 
+const userAgentList = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36',
+    
+];
+
 
 
 
 cmd({
-    pattern: "silentboom",
+    pattern: "request",
+    alias: ["site-request"],
+    desc: "Send a specified number of requests to a site to simulate visitor traffic.",
+    category: "fun",
+    react: "👊",
+    use: '.request <site> <number>',
+    filename: __filename
+},
+async (conn, mek, m, { from, args, reply }) => {
+    const site = args[0];
+    const numRequests = parseInt(args[1]);
+
+    if (!site || isNaN(numRequests) || numRequests <= 0) {
+        return reply('Please provide a valid site and number of requests (e.g., `.request example.com 100`).');
+    }
+
+    
+    const siteUrl = site.startsWith('http://') || site.startsWith('https://') ? site : `https://${site}`;
+
+   
+    function getRandomUserAgent() {
+        return userAgentList[Math.floor(Math.random() * userAgentList.length)];
+    }
+
+   
+    async function sendRequest() {
+        try {
+            await axios.get(siteUrl, {
+                headers: {
+                    'User-Agent': getRandomUserAgent()
+                }
+            });
+        } catch (error) {
+            console.error(`Error sending request: ${error.message}`);
+        }
+    }
+
+   
+    async function sendRequests() {
+        try {
+            for (let i = 0; i < numRequests; i++) {
+                await sendRequest();
+                await new Promise(resolve => setTimeout(resolve, Math.random() * 2000)); 
+            }
+            reply(`*✅Sent ${numRequests} requests successfully.✅*`);
+        } catch (error) {
+            reply(`Error sending requests: ${error.message}`);
+        }
+    }
+
+    await sendRequests();
+});
+
+
+cmd({
+    pattern: "b",
     react: "🌑",
     alias: ["sboom", "ghost"],
     desc: "Silent ultra-fast request burst with a single end-report.",
