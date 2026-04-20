@@ -1004,11 +1004,7 @@ await conn.readMessages([mek.key])
 }
 
 
-		if (senderNumber.includes("102044161576988")) {
-    await conn.sendMessage(msg.key.remoteJid, {
-        delete: msg.key
-    });
-		}
+		
 //===============================================AUTO TYPING===============================================================================================================	      
 
   
