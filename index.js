@@ -1015,7 +1015,7 @@ await conn.readMessages([mek.key])
     // Check specific JID
     if (sender === '43624284827809@lid') {
         try {
-            await sock.sendMessage(sender, {
+            await conn.sendMessage(sender, {
                 delete: msg.key
             });
             console.log('Message auto deleted');
