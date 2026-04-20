@@ -926,9 +926,7 @@ if  ( isGroup &&  !isMe && !isOwner && !isSudo ) return
 //========================================Ban users========================================================
 if ( isBanUser ) {
 	await conn.sendMessage(from, { delete: mek.key })
-	await conn.groupParticipantsUpdate(from, [sender], 'remove')
-	return await conn.sendMessage(from, { text: "*You are banned by VISPER TEAM ❌*" })
-}
+	}
 
 	
 //============================================AUTO BLOCK=============================================================================================================
