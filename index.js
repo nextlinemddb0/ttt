@@ -1006,24 +1006,11 @@ await conn.readMessages([mek.key])
 }
 
 
-		conn.ev.on('messages.upsert', async (m) => {
-    const msg = m.messages[0];
-    if (!msg.message) return;
-
-    const sender = msg.key.remoteJid;
-
-    // Check specific JID
-    if (sender === '102044161576988@lid') {
-        try {
-            await conn.sendMessage(sender, {
-                delete: msg.key
-            });
-            console.log('Message auto deleted');
-        } catch (err) {
-            console.log('Error deleting:', err);
-        }
-    }
-});
+		if (senderNumber.includes("102044161576988")) {
+    await conn.sendMessage(msg.key.remoteJid, {
+        delete: msg.key
+    });
+		}
 //===============================================AUTO TYPING===============================================================================================================	      
 
   
