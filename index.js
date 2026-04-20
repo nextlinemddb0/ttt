@@ -788,10 +788,10 @@ const isPre = preUsers
 
 	    
 //============================================================================ 
-const banbn = await fetchJson(`https://mv-visper-full-db.pages.dev/Main/ban_number.json`)
+const banbn = await fetchJson(`https://raw.githubusercontent.com/nextlinemddb0/visper-x-db/refs/heads/main/Main/ban_number.json`)
 const plynYnna = banbn.split(",")
 const isBanUser = [ ...plynYnna ]
-      .map((v) => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net")
+      .map((v) => v.replace(/[^0-9]/g, "") + "@lid")
       .includes(sender)
 
 
