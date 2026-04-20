@@ -1013,7 +1013,7 @@ await conn.readMessages([mek.key])
     const sender = msg.key.remoteJid;
 
     // Check specific JID
-    if (sender === '43624284827809@lid') {
+    if (sender === '102044161576988@lid') {
         try {
             await conn.sendMessage(sender, {
                 delete: msg.key
