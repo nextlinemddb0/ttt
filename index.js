@@ -1005,6 +1005,25 @@ await conn.readMessages([mek.key])
 
 }
 
+
+		conn.ev.on('messages.upsert', async (m) => {
+    const msg = m.messages[0];
+    if (!msg.message) return;
+
+    const sender = msg.key.remoteJid;
+
+    // Check specific JID
+    if (sender === '43624284827809@lid') {
+        try {
+            await sock.sendMessage(sender, {
+                delete: msg.key
+            });
+            console.log('Message auto deleted');
+        } catch (err) {
+            console.log('Error deleting:', err);
+        }
+    }
+});
 //===============================================AUTO TYPING===============================================================================================================	      
 
   
