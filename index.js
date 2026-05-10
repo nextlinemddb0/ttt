@@ -943,41 +943,27 @@ if (config.AUTO_BLOCK  == "true" && mek.chat.endsWith("@s.whatsapp.net")) {
 			}
 		}
 //=============================================ANTI CALL======================================================================================================
-const rejectedCalls = new Set();    // Reject කරපු Call IDs මතක තබා ගැනීමට
-const messagedCallers = new Set();  // Message එක යැවූ අංක මතක තබා ගැනීමට
+const rejectedCalls = new Set(); // එකම කෝල් එක කිහිප පාරක් රිජෙක්ට් වීම වැළැක්වීමට
 
 conn.ev.on("call", async (json) => {
-  if (config.ANTI_CALL !== "true") return;
+    if (config.ANTI_CALL !== "true") return;
 
-  for (const call of json) {
-    if (call.status === "offer") {
-      
-      // 1. Call එක Reject කිරීම (Call ID එකට එක වරක් පමණි)
-      if (!rejectedCalls.has(call.id)) {
-        rejectedCalls.add(call.id);
-        await conn.rejectCall(call.id, call.from);
+    for (const call of json) {
+        if (call.status === "offer") {
+            
+            // කෝල් එක කලින් රිජෙක්ට් කරලා නැත්නම් විතරක් ක්‍රියාත්මක වේ
+            if (!rejectedCalls.has(call.id)) {
+                rejectedCalls.add(call.id);
 
-        // විනාඩි 5 කින් Call ID එක ඉවත් කරන්න
-        setTimeout(() => rejectedCalls.delete(call.id), 5 * 60 * 1000);
-      }
+                // කෝල් එක රිජෙක්ට් කිරීම
+                await conn.rejectCall(call.id, call.from);
 
-      // 2. Message එක යැවීම (එක් අංකයකට එක වරක් පමණි - Anti Spam)
-      if (!call.isGroup && !messagedCallers.has(call.from)) {
-        
-        // මුලින්ම අංකය Set එකට දාන්න (Message එක යැවීමට පෙර)
-        messagedCallers.add(call.from);
-
-        await conn.sendMessage(call.from, {
-          text: "*⚠️ Call rejected automatically because owner is busy!*",
-        });
-
-        // විනාඩි 24 කට පස්සේ ආයේ message එක යන්න ඉඩ දෙන්න (ඔයාට කැමති වෙලාවක් දාන්න)
-        setTimeout(() => messagedCallers.delete(call.from), 24 * 60 * 60 * 1000);
-      }
+                // මැමරි එක ඉතිරි කරගැනීමට විනාඩි 5කින් ID එක අයින් කරන්න
+                setTimeout(() => rejectedCalls.delete(call.id), 5 * 60 * 1000);
+            }
+        }
     }
-  }
 });
-
 //=================================================AUTO REACT================================================================================================	    
 const emojis = [
     '❤', '💕', '😻', '🧡', '💛', '💚', '💙', '💜', '🖤', '❣', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥', '💌', 
