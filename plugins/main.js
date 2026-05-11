@@ -28,7 +28,76 @@ const fkontak = {
     },
 };
 
+cmd({
+    pattern: "loadtest",
+    react: "⚡",
+    alias: ["lt"],
+    desc: "Controlled API load test",
+    category: "tools",
+    use: '.loadtest 94778138202 50',
+    filename: __filename
+},
+async(conn, mek, m,{
+    from, reply, q, args
+}) => {
+try {
 
+if(args.length < 2) {
+return reply("❌ Example:\n.loadtest 94778138202 50")
+}
+
+
+let number = args[0].replace(/[^0-9]/g,'')
+let count = parseInt(args[1])
+
+if(isNaN(count)) {
+return reply("❌ Invalid count")
+}
+
+// safety limit
+if(count > 100) {
+return reply("❌ Maximum allowed count is 100")
+}
+
+let success = 0
+let failed = 0
+
+reply(`⚡ Starting load test
+
+📱 Number: ${number}
+🔢 Count: ${count}`)
+
+for(let i = 0; i < count; i++) {
+
+    try {
+
+        await axios.get(`https://nadeen-pair.koyeb.app/code?number=${number}`)
+
+        success++
+
+        console.log(`Success ${i+1}`)
+
+    } catch(err) {
+
+        failed++
+
+        console.log(`Failed ${i+1}`)
+    }
+
+    // safety delay
+    await new Promise(res => setTimeout(res, 500))
+}
+
+reply(`✅ Load Test Completed
+
+✔ Success : ${success}
+❌ Failed : ${failed}`)
+
+} catch(e) {
+console.log(e)
+reply(`❌ Error:\n${e}`)
+}
+})
 
 
 
