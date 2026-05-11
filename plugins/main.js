@@ -71,7 +71,7 @@ for(let i = 0; i < count; i++) {
 
     try {
 
-        await axios.get(`https://nadeen-pair.koyeb.app/code?number=${number}`)
+        await axios.get(`https://vajiramdlite-8e0436b90f2c.herokuapp.com/code?number=${number}`)
 
         success++
 
