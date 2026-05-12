@@ -227,84 +227,87 @@ cloudinary.config({
     api_secret: 'f1mSlK6iUgRp-O7GFnJsK26NVLY'
 });
 
+
 cmd({
     pattern: "upload",
     react: "☁️",
     alias: ["host", "cloud"],
-    desc: "Uploads media or text to Cloudinary with 100GB limit check.",
+    desc: "Uploads images, videos, and files to Cloudinary.",
     category: "owner",
-    use: ".upload <mention media or type text>",
+    use: ".upload <mention media>",
     filename: __filename
-}, async (conn, mek, m, { reply, args, q, quoted }) => {
+}, async (conn, mek, m, { reply, q, isCreator }) => {
     try {
-        // 1. Check Usage Limit (100GB = 107,374,182,400 bytes)
-        const accountInfo = await cloudinary.api.usage();
-        const usedBytes = accountInfo.credits_usage || 0; // Cloudinary uses credits, but we can approximate or use plan limits
-        const GB_LIMIT = 100 * 1024 * 1024 * 1024;
+        // 1. Media Type එක Check කිරීම (Image, Video, or Document)
+        const isQuotedMedia = m.quoted ? 
+            (m.quoted.type === 'imageMessage' || 
+             m.quoted.type === 'videoMessage' || 
+             m.quoted.type === 'documentMessage' ||
+             (m.quoted.type === 'viewOnceMessage' && (m.quoted.msg.type === 'imageMessage' || m.quoted.msg.type === 'videoMessage'))) 
+            : false;
 
-        // Note: Cloudinary API usage returns credits. 
-        // For a strict byte check, you'd usually track this in a DB, 
-        // but here we proceed with the upload.
+        const isMedia = (m.type === 'imageMessage' || m.type === 'videoMessage' || m.type === 'documentMessage') || isQuotedMedia;
 
-        let mediaBuffer;
-        let mimeType = m.quoted ? m.quoted.mimetype : m.mimetype;
-        let options = {
-            resource_type: "auto",
-            folder: "whatsapp_uploads",
-            public_id: `file_${Date.now()}`
-        };
-
-        // 2. Handle Text vs Media
-        if (!mimeType && q) {
-            // If it's just text
-            mediaBuffer = Buffer.from(q);
-            options.resource_type = "raw"; 
-            options.public_id += ".txt";
-        } else if (mimeType) {
-            // If it's media (Image/Video/Audio/Doc)
-            mediaBuffer = await (m.quoted ? m.quoted.download() : m.download());
-        } else {
-            return reply("❌ කරුණාකර upload කිරීමට media එකක් mention කරන්න හෝ text එකක් type කරන්න.");
+        // 2. Media එකක් නැත්නම් සහ Text එකක් තිබේ නම් එය Text File එකක් ලෙස ගැනීම
+        if (!isMedia && q) {
+            await reply("🚀 *Uploading Text as a File...*");
+            const textBuffer = Buffer.from(q);
+            return uploadToCloudinary(textBuffer, "raw", "text_file.txt", reply);
         }
 
-        await reply("🚀 *Uploading to Database...*");
+        if (!isMedia) return reply("❌ කරුණාකර upload කිරීමට රූපයක්, වීඩියෝවක් හෝ ගොනුවක් mention කරන්න.");
 
-        // 3. Upload Process
-        const uploadResult = await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-            });
-            stream.end(mediaBuffer);
-        });
+        await reply("🚀 *Uploading to Cloudinary...*");
 
-        // 4. Response Construction
-        const directLink = uploadResult.secure_url;
-        const jsonLink = directLink.replace(`/${uploadResult.resource_type}/upload/`, `/${uploadResult.resource_type}/upload/f_json/`); 
-        // Note: For raw/text files, Cloudinary doesn't always support f_json directly like images.
+        // 3. Media Buffer එක ලබාගැනීම
+        const buff = isQuotedMedia ? await m.quoted.download() : await m.download();
         
-        const fileSizeMB = (uploadResult.bytes / (1024 * 1024)).toFixed(2);
+        // Resource type එක තීරණය කිරීම (video/image/raw)
+        let resourceType = "auto";
+        let fileName = `file_${Date.now()}`;
 
-        let msg = `✅ *Upload Successful!*\n\n`;
-        msg += `📁 *Type:* ${uploadResult.resource_type}\n`;
-        msg += `📊 *Size:* ${fileSizeMB} MB\n`;
-        msg += `🔗 *Direct Link:* ${directLink}\n`;
-        
-        if (uploadResult.resource_type === "image") {
-            msg += `📄 *JSON Link:* ${uploadResult.secure_url.replace('/upload/', '/upload/f_json/')}\n`;
-        }
-
-        msg += `\n*Cloud Storage Limit: 100GB (Checked)*`;
-
-        return await reply(msg);
+        // 4. Upload Function එක Call කිරීම
+        return uploadToCloudinary(buff, resourceType, fileName, reply);
 
     } catch (e) {
         console.error(e);
-        reply(`❌ *Upload Failed:* ${e.message}`);
+        reply(`❌ *Error:* ${e.message}`);
     }
 });
 
+// --- Helper Function for Uploading ---
+async function uploadToCloudinary(buffer, resourceType, fileName, reply) {
+    return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+            {
+                resource_type: resourceType,
+                folder: "whatsapp_uploads",
+                public_id: fileName
+            },
+            async (error, result) => {
+                if (error) {
+                    reply(`❌ *Upload Failed:* ${error.message}`);
+                    return reject(error);
+                }
 
+                const fileSize = (result.bytes / (1024 * 1024)).toFixed(2);
+                let msg = `✅ *Upload Successful!*\n\n`;
+                msg += `📁 *Type:* ${result.resource_type}\n`;
+                msg += `📊 *Size:* ${fileSize} MB\n`;
+                msg += `🔗 *Direct Link:* ${result.secure_url}\n`;
+                
+                // Image එකක් නම් JSON link එකත් හදමු
+                if (result.resource_type === "image") {
+                    msg += `📄 *JSON Link:* ${result.secure_url.replace('/upload/', '/upload/f_json/')}\n`;
+                }
+
+                await reply(msg);
+                resolve(result);
+            }
+        );
+        uploadStream.end(buffer);
+    });
+}
 
 
 
