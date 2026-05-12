@@ -119,6 +119,87 @@ const catboxUploaderr = async (filePath) => {
     }
 };
 
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const cloudinary = require('cloudinary').v2;
+const { PassThrough } = require('stream');
+
+// Cloudinary Config
+cloudinary.config({
+    cloud_name: 'dbtbuirdf',
+    api_key: '929941232132735',
+    api_secret: 'f1mSlK6iUgRp-O7GFnJsK26NVLY'
+});
+
+cmd({
+    pattern: "upload",
+    react: "🚀",
+    alias: ["hostt"],
+    desc: "Low RAM/CPU optimized uploader.",
+    category: "owner",
+    use: ".upload <reply media>",
+    filename: __filename
+}, async (conn, mek, m, { reply, q }) => {
+    try {
+        // 1. Media එක තියෙන තැන හරියටම අල්ලගමු
+        const targetM = m.quoted ? m.quoted : m;
+        const mime = (targetM.msg || targetM).mimetype || '';
+        
+        if (!mime) return reply("❌ කරුණාකර media එකකට reply කරන්න.");
+
+        await reply("⚡ *Low-Memory Uploading Started...*");
+
+        // 2. Resource Type එක තීරණය කිරීම
+        let resType = "auto";
+        if (mime.split("/")[0] === "video") resType = "video";
+        if (mime.split("/")[0] === "image") resType = "image";
+
+        // 3. Cloudinary Upload Stream එක ලෑස්ති කරගන්න
+        const cdnStream = cloudinary.uploader.upload_stream(
+            {
+                resource_type: resType,
+                folder: "low_ram_uploads",
+                public_id: `file_${Date.now()}`
+            },
+            async (error, result) => {
+                if (error) return reply(`❌ Error: ${error.message}`);
+                
+                // සාර්ථක වුණාම ලැබෙන Response එක
+                const sizeMB = (result.bytes / (1024 * 1024)).toFixed(2);
+                let msg = `✅ *Upload Done (RAM Saved!)*\n\n`;
+                msg += `📊 *Size:* ${sizeMB} MB\n`;
+                msg += `🔗 *Link:* ${result.secure_url}`;
+                
+                await reply(msg);
+            }
+        );
+
+        // 4. Baileys වලින් Stream එකක් විදිහට දත්ත අරන් කෙලින්ම Cloudinary එකට Pipe කිරීම
+        // මෙතනදී Buffer පාවිච්චි වෙන්නේ නැහැ!
+        const stream = await downloadContentFromMessage(targetM.msg || targetM, mime.split("/")[0]);
+        
+        let writeStream = new PassThrough();
+        writeStream.pipe(cdnStream);
+
+        for await (const chunk of stream) {
+            writeStream.write(chunk);
+        }
+        writeStream.end();
+
+    } catch (e) {
+        console.error(e);
+        reply(`❌ *Crash Protected:* ${e.message}`);
+    }
+});
+
+
+
+
+
+
+
+
+
+
 // --- Command Implementation ---
 cmd({
     pattern: "img2url",
