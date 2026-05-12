@@ -8,6 +8,116 @@ var tmsg = '';
 if (config.LANG === 'SI') tmsg = 'එය Bot link ලබා දෙයි.';
 else tmsg = "It gives bot link.";
 
+const cloudinary = require('cloudinary').v2;
+
+
+// Cloudinary Config (මෙය අනිවාර්යයි)
+cloudinary.config({
+    cloud_name: 'dbtbuirdf',
+    api_key: '929941232132735',
+    api_secret: 'f1mSlK6iUgRp-O7GFnJsK26NVLY'
+});
+
+const DB_NAME = "blacklist_db";
+
+// Helper: Cloudinary එකෙන් දත්ත කියවීම
+async function getBlacklist() {
+    try {
+        const url = cloudinary.url(`${DB_NAME}.json`, { resource_type: 'raw' }) + `?v=${Date.now()}`;
+        const response = await axios.get(url);
+        return Array.isArray(response.data) ? response.data : [];
+    } catch { return []; }
+}
+
+// Helper: Cloudinary එකට දත්ත සේව් කිරීම
+async function saveBlacklist(data) {
+    const buffer = Buffer.from(JSON.stringify(data));
+    return new Promise((res, rej) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'raw', public_id: DB_NAME, overwrite: true },
+            (err, result) => err ? rej(err) : res(result)
+        );
+        stream.end(buffer);
+    });
+}
+
+// --- 🛡️ Auto-Delete Logic (මේක තමයි index එකේ වැඩේ කරන්නේ) ---
+cmd({
+    on: "body", // හැම මැසේජ් එකකම මේක run වෙනවා
+    filename: __filename
+}, async (conn, mek, m, { isGroup, isAdmins }) => {
+    try {
+        if (!isGroup || isAdmins) return; // Admin ලාගේ මැසේජ් මකන්නේ නැහැ
+
+        // මුලින්ම global list එක නැත්නම් load කරගන්න
+        if (!global.blacklist) {
+            global.blacklist = await getBlacklist();
+        }
+
+        const sender = m.sender;
+        if (global.blacklist.includes(sender)) {
+            // බෝට් ඇඩ්මින්ද කියලා බලමු
+            const groupMetadata = await conn.groupMetadata(m.chat);
+            const botNumber = conn.user.id.split(':')[0] + '@s.whatsapp.net';
+            const botIsAdmin = groupMetadata.participants.find(u => u.id === botNumber)?.admin;
+
+            if (botIsAdmin) {
+                return await conn.sendMessage(m.chat, { delete: m.key });
+            }
+        }
+    } catch (e) { /* Error ignore */ }
+});
+
+// --- 🚫 Ban/Unban Commands ---
+cmd({
+    pattern: "ban",
+    react: "🚫",
+    category: "admin",
+    filename: __filename
+}, async (conn, mek, m, { reply, q, isGroup, isAdmins }) => {
+    if (!isGroup || !isAdmins) return reply("❌ Admin Only.");
+    
+    let target = m.quoted ? m.quoted.sender : q.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+    if (!target || target.length < 10) return reply("❌ User කෙනෙක් mention කරන්න.");
+
+    let blacklist = await getBlacklist();
+    if (!blacklist.includes(target)) {
+        blacklist.push(target);
+        await saveBlacklist(blacklist);
+        global.blacklist = blacklist; // RAM එක update කිරීම
+        return reply(`✅ User @${target.split('@')[0]} Blacklisted.`, { mentions: [target] });
+    }
+    reply("ℹ️ දැනටමත් blacklist එකේ ඉන්නේ.");
+});
+
+cmd({
+    pattern: "unban",
+    react: "✅",
+    category: "admin",
+    filename: __filename
+}, async (conn, mek, m, { reply, q, isAdmins }) => {
+    if (!isAdmins) return reply("❌ Admin Only.");
+    
+    let target = m.quoted ? m.quoted.sender : q.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+    let blacklist = await getBlacklist();
+    
+    if (blacklist.includes(target)) {
+        blacklist = blacklist.filter(u => u !== target);
+        await saveBlacklist(blacklist);
+        global.blacklist = blacklist; // RAM එක update කිරීම
+        return reply(`✅ User @${target.split('@')[0]} Whitelisted.`, { mentions: [target] });
+    }
+    reply("❌ මේ User ලැයිස්තුවේ නැත.");
+});
+
+
+
+
+
+
+
+
+
 cmd({
     pattern: "script",
     alias: ["sc", "git", "repo"],
