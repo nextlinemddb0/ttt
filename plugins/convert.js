@@ -146,7 +146,7 @@ cmd({
         
         if (!mime) return reply("❌ කරුණාකර media එකකට reply කරන්න.");
 
-        await reply("⚡ Uploading Started...*");
+        await reply("*⚡ Uploading Started...*");
 
         // 2. Resource Type එක තීරණය කිරීම
         let resType = "auto";
@@ -254,44 +254,49 @@ cmd({
     pattern: "allfiles",
     react: "📂",
     alias: ["listfiles", "mycloud"],
-    desc: "Shows list of uploaded files on Cloudinary.",
+    desc: "Shows all uploaded files from Cloudinary storage.",
     category: "owner",
     use: ".allfiles",
     filename: __filename
 }, async (conn, mek, m, { reply }) => {
     try {
-        await reply("🔍 *Fetching files from Cloudinary...*");
+        await reply("🔍 *Fetching all files from Cloudinary...*");
 
+        // මෙතන prefix එක අයින් කළා, එතකොට folder එක මොකක් වුණත් ඔක්කොම පේනවා
         const result = await cloudinary.api.resources({
             type: 'upload',
-            prefix: 'low_ram_uploads/', // ඔයාගේ folder එක
-            max_results: 1000
+            max_results: 30, // අන්තිම files 30ක් පෙන්වයි
+            direction: 'desc' // අලුතින්ම දාපු ඒවා මුලට එන්න
         });
 
         if (!result.resources || result.resources.length === 0) {
-            return reply("📭 *ඔබේ storage එකේ files කිසිවක් නැත.*");
+            return reply("📭 *ඔබේ Cloudinary storage එකේ files කිසිවක් හමු නොවීය.*");
         }
 
-        let fileList = `📂 *CLOUD STORAGE FILES*\n\n`;
+        let fileList = `📂 *CLOUD STORAGE - ALL FILES*\n\n`;
         
         result.resources.forEach((file, index) => {
-            const name = file.public_id.replace('low_ram_uploads/', '');
+            // File නම ලස්සන කරමු
+            const fullName = file.public_id; 
             const size = (file.bytes / (1024 * 1024)).toFixed(2);
+            const date = new Date(file.created_at).toLocaleDateString();
             
-            fileList += `${index + 1}. 📄 *${name}*\n`;
-            fileList += `   ⚖️ Size: ${size} MB\n`;
-            fileList += `   🔗 Link: ${file.secure_url}\n\n`;
+            fileList += `${index + 1}. 📄 *Name:* ${fullName}\n`;
+            fileList += `   ⚖️ *Size:* ${size} MB\n`;
+            fileList += `   📅 *Date:* ${date}\n`;
+            fileList += `   🔗 *Link:* ${file.secure_url}\n\n`;
         });
 
-        fileList += `*Total Files:* ${result.resources.length}\n`;
-        fileList += `💡 *Delete කිරීමට:* .del [Direct Link]`;
+        fileList += `*Total Found:* ${result.resources.length}\n\n`;
+        fileList += `💡 *මකා දැමීමට:* .del [Direct Link]`;
         
         return await reply(fileList);
+
     } catch (e) {
+        console.error(e);
         reply(`❌ *Failed to fetch files:* ${e.message}`);
     }
 });
-
 cmd({
     pattern: "del",
     react: "🗑️",
