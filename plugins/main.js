@@ -220,95 +220,83 @@ async (conn, mek, m, { from, args, reply }) => {
 
 const cloudinary = require('cloudinary').v2;
 
-// Cloudinary Configuration
+// Cloudinary Config
 cloudinary.config({
     cloud_name: 'dbtbuirdf',
     api_key: '929941232132735',
     api_secret: 'f1mSlK6iUgRp-O7GFnJsK26NVLY'
 });
 
-
 cmd({
     pattern: "upload",
     react: "☁️",
     alias: ["host", "cloud"],
-    desc: "Uploads images, videos, and files to Cloudinary.",
+    desc: "Direct Cloudinary uploader (Optimized for large files)",
     category: "owner",
-    use: ".upload <mention media>",
+    use: ".upload <reply to media>",
     filename: __filename
-}, async (conn, mek, m, { reply, q, isCreator }) => {
+}, async (conn, mek, m, { reply, q }) => {
     try {
-        // 1. Media Type එක Check කිරීම (Image, Video, or Document)
+        // 1. Media Detection
         const isQuotedMedia = m.quoted ? 
             (m.quoted.type === 'imageMessage' || 
              m.quoted.type === 'videoMessage' || 
+             m.quoted.type === 'audioMessage' ||
              m.quoted.type === 'documentMessage' ||
              (m.quoted.type === 'viewOnceMessage' && (m.quoted.msg.type === 'imageMessage' || m.quoted.msg.type === 'videoMessage'))) 
             : false;
 
-        const isMedia = (m.type === 'imageMessage' || m.type === 'videoMessage' || m.type === 'documentMessage') || isQuotedMedia;
+        const isMedia = (m.type === 'imageMessage' || m.type === 'videoMessage' || m.type === 'audioMessage' || m.type === 'documentMessage') || isQuotedMedia;
 
-        // 2. Media එකක් නැත්නම් සහ Text එකක් තිබේ නම් එය Text File එකක් ලෙස ගැනීම
-        if (!isMedia && q) {
-            await reply("🚀 *Uploading Text as a File...*");
-            const textBuffer = Buffer.from(q);
-            return uploadToCloudinary(textBuffer, "raw", "text_file.txt", reply);
-        }
-
-        if (!isMedia) return reply("❌ කරුණාකර upload කිරීමට රූපයක්, වීඩියෝවක් හෝ ගොනුවක් mention කරන්න.");
+        if (!isMedia && !q) return reply("❌ කරුණාකර upload කිරීමට media එකක් mention කරන්න.");
 
         await reply("🚀 *Uploading to Cloudinary...*");
 
-        // 3. Media Buffer එක ලබාගැනීම
+        // 2. Download Media as Buffer
         const buff = isQuotedMedia ? await m.quoted.download() : await m.download();
         
-        // Resource type එක තීරණය කිරීම (video/image/raw)
-        let resourceType = "auto";
-        let fileName = `file_${Date.now()}`;
+        // Size Check (Safety limit 100MB)
+        const sizeInMB = (buff.length / (1024 * 1024)).toFixed(2);
+        if (sizeInMB > 100) return reply("❌ File size is too large (Limit: 100MB).");
 
-        // 4. Upload Function එක Call කිරීම
-        return uploadToCloudinary(buff, resourceType, fileName, reply);
+        // 3. Uploading using Stream (Safe for RAM)
+        const result = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    resource_type: "auto",
+                    folder: "whatsapp_uploads",
+                    public_id: `file_${Date.now()}`,
+                    timeout: 60000 // විනාඩියක් දක්වා කාලය ලබා දෙනවා
+                },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+            uploadStream.end(buff);
+        });
+
+        // 4. Response with Direct Cloudinary Links
+        let msg = `✅ *Upload Successful!* \n\n`;
+        msg += `📊 *Size:* ${sizeInMB} MB\n`;
+        msg += `📁 *Type:* ${result.resource_type}\n\n`;
+        msg += `🔗 *Direct Link:* \n${result.secure_url}\n\n`;
+        
+        // Image එකක් නම් විතරක් JSON Link එකත් දෙනවා
+        if (result.resource_type === "image") {
+            const jsonLink = result.secure_url.replace('/upload/', '/upload/f_json/');
+            msg += `📄 *JSON Link:* \n${jsonLink}\n`;
+        }
+
+        return await reply(msg);
 
     } catch (e) {
         console.error(e);
-        reply(`❌ *Error:* ${e.message}`);
+        // Timeout හෝ වෙනත් error එකක් ආවොත් බෝට් එක crash වෙන්නේ නැහැ
+        const errorMsg = e.message.includes("timeout") ? "Upload timed out due to large file or slow net." : e.message;
+        reply(`❌ *Upload Failed:* ${errorMsg}`);
     }
 });
-
-// --- Helper Function for Uploading ---
-async function uploadToCloudinary(buffer, resourceType, fileName, reply) {
-    return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-            {
-                resource_type: resourceType,
-                folder: "whatsapp_uploads",
-                public_id: fileName
-            },
-            async (error, result) => {
-                if (error) {
-                    reply(`❌ *Upload Failed:* ${error.message}`);
-                    return reject(error);
-                }
-
-                const fileSize = (result.bytes / (1024 * 1024)).toFixed(2);
-                let msg = `✅ *Upload Successful!*\n\n`;
-                msg += `📁 *Type:* ${result.resource_type}\n`;
-                msg += `📊 *Size:* ${fileSize} MB\n`;
-                msg += `🔗 *Direct Link:* ${result.secure_url}\n`;
-                
-                // Image එකක් නම් JSON link එකත් හදමු
-                if (result.resource_type === "image") {
-                    msg += `📄 *JSON Link:* ${result.secure_url.replace('/upload/', '/upload/f_json/')}\n`;
-                }
-
-                await reply(msg);
-                resolve(result);
-            }
-        );
-        uploadStream.end(buffer);
-    });
-}
-
 
 
 
