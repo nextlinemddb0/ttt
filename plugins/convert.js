@@ -203,24 +203,22 @@ cmd({
     filename: __filename
 }, async (conn, mek, m, { reply }) => {
     try {
-        // Cloudinary API එකෙන් usage data ලබාගැනීම
-        // මෙහිදී දත්ත ලබාගැනීමට පමණක් ඉතා අඩු RAM ප්‍රමාණයක් වැය වේ.
         const usage = await cloudinary.api.usage();
 
-        // 1. Credits Calculation (Usage Percentage)
-        const creditsUsed = usage.credits.used;
-        const creditsLimit = usage.credits.limit;
-        const creditsPercent = usage.credits.used_percent.toFixed(2);
+        // API එකෙන් එන දත්ත (නැතිනම් 0 ලෙස ගනී)
+        const creditsUsed = usage.credits.used || 0;
+        const creditsLimit = usage.credits.limit || 25; // Free tier limit is 25
+        const creditsPercent = usage.credits.used_percent ? usage.credits.used_percent.toFixed(2) : 0;
 
-        // 2. Storage Calculation (Bytes to GB)
-        const storageUsedGB = (usage.resources.used / (1024 * 1024 * 1024)).toFixed(3);
-        const storageLimitGB = (usage.resources.limit / (1024 * 1024 * 1024)).toFixed(1);
+        // Storage (Bytes to GB) - API එකෙන් නැතිනම් 0.000 පෙන්වයි
+        const storageUsedGB = usage.resources.used ? (usage.resources.used / (1024 * 1024 * 1024)).toFixed(3) : "0.000";
+        const storageLimitGB = "25.0"; // Cloudinary Free limit for Storage
 
-        // 3. Bandwidth Calculation (Bytes to GB)
-        const bandwidthUsedGB = (usage.bandwidth.used / (1024 * 1024 * 1024)).toFixed(3);
-        const bandwidthLimitGB = (usage.bandwidth.limit / (1024 * 1024 * 1024)).toFixed(1);
+        // Bandwidth (Bytes to GB)
+        const bandwidthUsedGB = usage.bandwidth.used ? (usage.bandwidth.used / (1024 * 1024 * 1024)).toFixed(3) : "0.000";
+        const bandwidthLimitGB = "25.0"; // Cloudinary Free limit for Bandwidth
 
-        // Progress Bar (Visual representation)
+        // Progress Bar Function
         const generateBar = (percent) => {
             const totalWidth = 10;
             const filledWidth = Math.round((Math.min(percent, 100) / 100) * totalWidth);
@@ -241,7 +239,7 @@ cmd({
         statusMsg += `🌐 *Bandwidth (Monthly):*\n`;
         statusMsg += `   Used: ${bandwidthUsedGB} GB\n`;
         statusMsg += `   Limit: ${bandwidthLimitGB} GB\n\n`;
-
+        
         statusMsg += `🌐 *Powered by sadas.dev*`;
 
         return await reply(statusMsg);
@@ -252,10 +250,83 @@ cmd({
     }
 });
 
+cmd({
+    pattern: "allfiles",
+    react: "📂",
+    alias: ["listfiles", "mycloud"],
+    desc: "Shows list of uploaded files on Cloudinary.",
+    category: "owner",
+    use: ".allfiles",
+    filename: __filename
+}, async (conn, mek, m, { reply }) => {
+    try {
+        await reply("🔍 *Fetching files from Cloudinary...*");
 
+        const result = await cloudinary.api.resources({
+            type: 'upload',
+            prefix: 'low_ram_uploads/', // ඔයාගේ folder එක
+            max_results: 1000
+        });
 
+        if (!result.resources || result.resources.length === 0) {
+            return reply("📭 *ඔබේ storage එකේ files කිසිවක් නැත.*");
+        }
 
+        let fileList = `📂 *CLOUD STORAGE FILES*\n\n`;
+        
+        result.resources.forEach((file, index) => {
+            const name = file.public_id.replace('low_ram_uploads/', '');
+            const size = (file.bytes / (1024 * 1024)).toFixed(2);
+            
+            fileList += `${index + 1}. 📄 *${name}*\n`;
+            fileList += `   ⚖️ Size: ${size} MB\n`;
+            fileList += `   🔗 Link: ${file.secure_url}\n\n`;
+        });
 
+        fileList += `*Total Files:* ${result.resources.length}\n`;
+        fileList += `💡 *Delete කිරීමට:* .del [Direct Link]`;
+        
+        return await reply(fileList);
+    } catch (e) {
+        reply(`❌ *Failed to fetch files:* ${e.message}`);
+    }
+});
+
+cmd({
+    pattern: "del",
+    react: "🗑️",
+    alias: ["delete", "remove"],
+    desc: "Delete a file from Cloudinary using its link.",
+    category: "owner",
+    use: ".del <direct_link>",
+    filename: __filename
+}, async (conn, mek, m, { reply, q }) => {
+    try {
+        if (!q) return reply("❌ කරුණාකර මකා දැමිය යුතු file එකේ direct link එක ලබා දෙන්න.");
+
+        // Link එකෙන් Public ID එක වෙන් කරගැනීම (e.g., low_ram_uploads/file_123)
+        // Cloudinary URL structure එක අනුව ID එක Extract කිරීම
+        const urlParts = q.split('/');
+        const fileNameWithExt = urlParts[urlParts.length - 1]; // e.g., file_123.jpg
+        const folderName = "low_ram_uploads";
+        const publicId = `${folderName}/${fileNameWithExt.split('.')[0]}`;
+
+        await reply(`⏳ *Deleting:* ${publicId}...`);
+
+        // Cloudinary එකෙන් delete කිරීම
+        const result = await cloudinary.uploader.destroy(publicId);
+
+        if (result.result === 'ok') {
+            return await reply(`✅ *Successfully Deleted!*\n\n📁 *ID:* ${publicId}`);
+        } else {
+            return await reply(`❌ *Delete Failed:* File එක හමු නොවීය හෝ දැනටමත් මකා ඇත.`);
+        }
+
+    } catch (e) {
+        console.error(e);
+        reply(`❌ *Error:* ${e.message}`);
+    }
+});
 
 // --- Command Implementation ---
 cmd({
