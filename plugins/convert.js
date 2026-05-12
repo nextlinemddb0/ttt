@@ -131,7 +131,7 @@ cloudinary.config({
 });
 
 cmd({
-    pattern: "upload",
+    pattern: "upfiles",
     react: "🚀",
     alias: ["hostt"],
     desc: "Low RAM/CPU optimized uploader.",
@@ -146,7 +146,7 @@ cmd({
         
         if (!mime) return reply("❌ කරුණාකර media එකකට reply කරන්න.");
 
-        await reply("⚡ *Low-Memory Uploading Started...*");
+        await reply("⚡ Uploading Started...*");
 
         // 2. Resource Type එක තීරණය කිරීම
         let resType = "auto";
@@ -165,7 +165,7 @@ cmd({
                 
                 // සාර්ථක වුණාම ලැබෙන Response එක
                 const sizeMB = (result.bytes / (1024 * 1024)).toFixed(2);
-                let msg = `✅ *Upload Done (RAM Saved!)*\n\n`;
+                let msg = `✅ *Upload Done*\n\n`;
                 msg += `📊 *Size:* ${sizeMB} MB\n`;
                 msg += `🔗 *Link:* ${result.secure_url}`;
                 
@@ -193,7 +193,64 @@ cmd({
 
 
 
+cmd({
+    pattern: "status",
+    react: "📊",
+    alias: ["storage", "usage", "limit"],
+    desc: "Check Cloudinary storage and bandwidth usage status.",
+    category: "owner",
+    use: ".status",
+    filename: __filename
+}, async (conn, mek, m, { reply }) => {
+    try {
+        // Cloudinary API එකෙන් usage data ලබාගැනීම
+        // මෙහිදී දත්ත ලබාගැනීමට පමණක් ඉතා අඩු RAM ප්‍රමාණයක් වැය වේ.
+        const usage = await cloudinary.api.usage();
 
+        // 1. Credits Calculation (Usage Percentage)
+        const creditsUsed = usage.credits.used;
+        const creditsLimit = usage.credits.limit;
+        const creditsPercent = usage.credits.used_percent.toFixed(2);
+
+        // 2. Storage Calculation (Bytes to GB)
+        const storageUsedGB = (usage.resources.used / (1024 * 1024 * 1024)).toFixed(3);
+        const storageLimitGB = (usage.resources.limit / (1024 * 1024 * 1024)).toFixed(1);
+
+        // 3. Bandwidth Calculation (Bytes to GB)
+        const bandwidthUsedGB = (usage.bandwidth.used / (1024 * 1024 * 1024)).toFixed(3);
+        const bandwidthLimitGB = (usage.bandwidth.limit / (1024 * 1024 * 1024)).toFixed(1);
+
+        // Progress Bar (Visual representation)
+        const generateBar = (percent) => {
+            const totalWidth = 10;
+            const filledWidth = Math.round((Math.min(percent, 100) / 100) * totalWidth);
+            const emptyWidth = totalWidth - filledWidth;
+            return "▰".repeat(filledWidth) + "▱".repeat(emptyWidth);
+        };
+
+        let statusMsg = `📊 *CLOUDINARY SYSTEM STATUS*\n\n`;
+        
+        statusMsg += `🛡️ *Total Credits:* ${creditsPercent}%\n`;
+        statusMsg += `${generateBar(creditsPercent)}\n`;
+        statusMsg += `   Used: ${creditsUsed} / Limit: ${creditsLimit}\n\n`;
+
+        statusMsg += `📁 *Storage Usage:*\n`;
+        statusMsg += `   Used: ${storageUsedGB} GB\n`;
+        statusMsg += `   Limit: ${storageLimitGB} GB\n\n`;
+
+        statusMsg += `🌐 *Bandwidth (Monthly):*\n`;
+        statusMsg += `   Used: ${bandwidthUsedGB} GB\n`;
+        statusMsg += `   Limit: ${bandwidthLimitGB} GB\n\n`;
+
+        statusMsg += `🌐 *Powered by sadas.dev*`;
+
+        return await reply(statusMsg);
+
+    } catch (e) {
+        console.error(e);
+        reply(`❌ *Failed to fetch status:* ${e.message}`);
+    }
+});
 
 
 
