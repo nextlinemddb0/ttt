@@ -327,7 +327,7 @@ cmd({
 
         await conn.sendMessage(
             from,
-            { audio: { url: prog.download.downloadUrl }, mimetype: 'audio/mpeg' },
+            { audio: { url: prog.download.data.downloadUrl }, mimetype: 'audio/mpeg' },
             { quoted: mek }
         );
 
@@ -361,7 +361,7 @@ async (conn, mek, m, { from, q, reply }) => {
     const outputPath = `./temp_${Date.now()}.opus`;
 
     // 1. MP3 එක download කරලා save කරනවා
-    const res = await fetch(prog.download.downloadUrl);
+    const res = await fetch(prog.download.data.downloadUrl);
     const arrayBuffer = await res.arrayBuffer();
     fs.writeFileSync(inputPath, Buffer.from(arrayBuffer));
 
@@ -430,7 +430,7 @@ async (conn, mek, m, { from, q, reply }) => {
         await conn.sendMessage(
             from,
             {
-                document: { url: prog.download.downloadUrl },
+                document: { url: prog.download.data.downloadUrl },
                 jpegThumbnail: resizedBotImg,
                 mimetype: 'audio/mpeg',
                 caption: `*${title}*\n\n${config.FOOTER}`,
