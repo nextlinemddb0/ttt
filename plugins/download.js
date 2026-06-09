@@ -319,27 +319,15 @@ cmd({
     if (!q) return await reply('*Need a YouTube URL!*');
 
     try {
-        const prog = await fetchJson(`https://sulamd-ytmp3.vercel.app/download?q=${q}&format=mp3&apikey=SULA0310`)
-        if (!prog || !prog.result.download) return await reply('*Conversion failed, try again!*');
+        const prog = await fetchJson(`https://yt-steel-three.vercel.app/api/download?q=${q}`)
+    
 
-        try {
-            const bytes = await checkFileSize(prog.result.download, config.MAX_SIZE);
-            const sizeInMB = (bytes / (1024 * 1024)).toFixed(2);
-
-            // This check is redundant now, but left for safety
-            if (sizeInMB > config.MAX_SIZE) {
-                return reply(`*⚠️ File too large!*\n\n*📌 Maximum allowed: \`${config.MAX_SIZE}\` MB*`);
-            }
-
-        } catch (err) {
-            return reply(`*⚠️ File too large or cannot determine size!*\n\n*📌 Maximum allowed: \`${config.MAX_SIZE}\` MB*`);
-        }
 
         await conn.sendMessage(from, { react: { text: '⬆️', key: mek.key } });
 
         await conn.sendMessage(
             from,
-            { audio: { url: prog.result.download }, mimetype: 'audio/mpeg' },
+            { audio: { url: prog.download.downloadUrl }, mimetype: 'audio/mpeg' },
             { quoted: mek }
         );
 
@@ -363,8 +351,8 @@ async (conn, mek, m, { from, q, reply }) => {
   if (!q) return await reply('*Need a youtube url!*');
 
   try {
-    const prog = await fetchJson(`https://sulamd-ytmp3.vercel.app/download?q=${encodeURIComponent(q)}&format=mp3&apikey=SULA0310`);
-    if (!prog?.result?.download) throw new Error('No download URL');
+    const prog = await fetchJson(`https://yt-steel-three.vercel.app/api/download?q=${encodeURIComponent(q)}`);
+    
 
     await conn.sendMessage(from, { react: { text: '⬆️', key: mek.key } });
 
@@ -373,7 +361,7 @@ async (conn, mek, m, { from, q, reply }) => {
     const outputPath = `./temp_${Date.now()}.opus`;
 
     // 1. MP3 එක download කරලා save කරනවා
-    const res = await fetch(prog.result.download);
+    const res = await fetch(prog.download.downloadUrl);
     const arrayBuffer = await res.arrayBuffer();
     fs.writeFileSync(inputPath, Buffer.from(arrayBuffer));
 
@@ -433,7 +421,7 @@ async (conn, mek, m, { from, q, reply }) => {
         // Resize image to 200x200 before sending
         const resizedBotImg = await resizeImage(botimgBuffer, 200, 200);
         // --- Get audio download link ---
-        const prog = await fetchJson(`https://sulamd-ytmp3.vercel.app/download?q=${datae}&format=mp3&apikey=SULA0310`);
+        const prog = await fetchJson(`https://yt-steel-three.vercel.app/api/download?q=${datae}`);
        
 
         // --- Send audio file ---
@@ -442,7 +430,7 @@ async (conn, mek, m, { from, q, reply }) => {
         await conn.sendMessage(
             from,
             {
-                document: { url: prog.result.download },
+                document: { url: prog.download.downloadUrl },
                 jpegThumbnail: resizedBotImg,
                 mimetype: 'audio/mpeg',
                 caption: `*${title}*\n\n${config.FOOTER}`,
