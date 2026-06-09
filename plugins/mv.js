@@ -37,7 +37,7 @@ async (conn, m, mek, { from, q, prefix, isSudo, isOwner, isMe, reply }) => {
 
         if (!q) return reply("*Please give movie or tv name 🎬*");
 
-        const api = `https://moviepro.sadas.dev/api/search?keyword=${encodeURIComponent(q)}&key=sadas2007`;
+        const api = `https://moviepro.sadas.dev/api/search?keyword=${encodeURIComponent(q)}&key=sadas2012`;
         const { data: result } = await axios.get(api);
 
         if (!result.status || !result.results?.length) {
@@ -84,7 +84,7 @@ async (conn, m, mek, { from, q, prefix, reply }) => {
     try {
         if (!q) return reply("*Please provide movie id!*");
 
-        const api = `https://moviepro.sadas.dev/api/info?id=${q}&key=sadas2007`;
+        const api = `https://moviepro.sadas.dev/api/info?id=${q}&key=sadas2012`;
         const { data: res } = await axios.get(api);
 
         if (!res.status || !res.movie_details) {
