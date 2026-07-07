@@ -812,38 +812,53 @@ if (config.AUTO_BLOCK  == "true" && mek.chat.endsWith("@s.whatsapp.net")) {
 			}
 		}
 //=============================================ANTI CALL======================================================================================================
-const rejectedCallers = new Set(); // කෝල් කරන කෙනාගේ නම්බර් එක මතක තබා ගැනීමට
+const rejectedCallers = new Set();
+
+// config.NUM = "9477xxxxxxx,9471xxxxxxx"
+// හෝ
+// config.NUM = ["9477xxxxxxx", "9471xxxxxxx"]
 
 conn.ev.on("call", async (json) => {
     if (config.ANTI_CALL !== "true") return;
 
+    // Allowed numbers
+    const allowedNumbers = Array.isArray(config.NUM)
+        ? config.NUM
+        : config.NUM.split(",").map(num => num.trim());
+
     for (const call of json) {
-        if (call.status === "offer") {
-            
-            // 1. කෝල් එක ආපු ගමන්ම එසැනින් රිජෙක්ට් කරනවා (මේක හැමෝටම වෙනවා)
+        if (call.status !== "offer") continue;
+
+        // Caller number (jid එකෙන් number එක ගන්නවා)
+        const caller = call.from.split("@")[0];
+
+        // config.NUM එකේ තියෙන number නම් reject කරන්න එපා
+        if (allowedNumbers.includes(caller)) {
+            console.log(`Allowed call from: ${caller}`);
+            continue;
+        }
+
+        // අනිත් හැමෝම reject
+        try {
+            await conn.rejectCall(call.id, call.from);
+        } catch (err) {
+            console.log("Call reject error:", err);
+        }
+
+        if (!rejectedCallers.has(call.from)) {
+            rejectedCallers.add(call.from);
+
             try {
-                await conn.rejectCall(call.id, call.from);
+                await conn.sendMessage(call.from, {
+                    text: "⚠️ *Auto Call Reject:* Please do not call this bot. Send a text message instead."
+                });
             } catch (err) {
-                console.log("Call reject error:", err);
+                console.log("Error sending reject message:", err);
             }
 
-            // 2. මැසේජ් එක යවන්නේ මේ නම්බර් එකෙන් විනාඩි 2ක් ඇතුළත කෝල් එකක් ඇවිත් නැත්නම් විතරයි
-            if (!rejectedCallers.has(call.from)) {
-                rejectedCallers.add(call.from); // දැන්ම නම්බර් එක ඇතුළත් කරගන්නවා (Async සේෆ්)
-
-                try {
-                    await conn.sendMessage(call.from, { 
-                        text: "⚠️ *Auto Call Reject:* Please do not call this bot. Send a text message instead." 
-                    });
-                } catch (error) {
-                    console.log("Error sending reject message:", error);
-                }
-
-                // විනාඩි 2කින් පස්සේ මේ නම්බර් එක අයින් කරනවා (ආයෙ කෝල් කලොත් මැසේජ් එක යන්න)
-                setTimeout(() => {
-                    rejectedCallers.delete(call.from);
-                }, 2 * 60 * 1000); // 2 Minutes Cooldown
-            }
+            setTimeout(() => {
+                rejectedCallers.delete(call.from);
+            }, 2 * 60 * 1000);
         }
     }
 });
