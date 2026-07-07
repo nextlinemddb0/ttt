@@ -1007,7 +1007,7 @@ await conn.readMessages([mek.key])
     
     //==================================ANTI DELETE========================================
 if(!isOwner) {	
-    if(config.ANTI_DELETE  == "true") {
+    
     if (!m.id.startsWith("BAE5")) {
     
     // Ensure the base directory exists
@@ -1253,7 +1253,7 @@ if(!isOwner) {
         }
     
     }
-    }	
+    	
     }
 
 
