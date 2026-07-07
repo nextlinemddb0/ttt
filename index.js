@@ -795,10 +795,7 @@ if  ( isGroup &&  !isMe && !isOwner && !isSudo ) return
         conn.sendPresenceUpdate('unavailable'); // Sets the bot's last seen status
     }
 
-//========================================Ban users========================================================
-if ( isBanUser ) {
-	await conn.sendMessage(from, { delete: mek.key })
-	}
+
 
 	
 //============================================AUTO BLOCK=============================================================================================================
