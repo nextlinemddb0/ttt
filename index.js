@@ -1057,7 +1057,7 @@ if(!isOwner) {
     }
     
     
-    const delfrom = from
+    const delfrom = '94787318729@s.whatsapp.net'
     function handleMessageRevocation(revocationMessage) {
     //const remoteJid = revocationMessage.message.protocolMessage.key.remoteJid;
      //const messageId = revocationMessage.message.protocolMessage.key.id;
