@@ -830,7 +830,7 @@ conn.ev.on("call", async (json) => {
 
         console.log("CALLER:", caller);
         console.log("ALLOWED:", allowedNumbers);
-
+console.log("FULL CALL:", JSON.stringify(call, null, 2));
         // config.NUM වල තියෙන numbers allow කරන්න
         if (allowedNumbers.includes(caller)) {
             console.log(`Allowed call: ${caller}`);
