@@ -181,10 +181,10 @@ conn.ev.on('connection.update', async (update) => {
 • Work Type: ${config.WORK_TYPE}
 • Status: Online ✅
 `;
-                await conn.sendMessage(targetJid, { 
-                   image: { url: 'https://mv-visper-full-db.pages.dev/Data/visper_main.jpeg' }, 
-                  caption: ownerdata.connectmg || configMsg 
-              });
+             //await conn.sendMessage(targetJid, { 
+              //image: { url: 'https://mv-visper-full-db.pages.dev/Data/visper_main.jpeg' }, 
+                 // caption: ownerdata.connectmg || configMsg 
+             // });
                 
                 console.log("✅ Initialization message sent.");
 				//await autoJoinGroup(conn);
@@ -769,135 +769,7 @@ conn.sendFileUrl = async (jid, url, caption, quoted, options = {}) => {
   }
 }
 
-const ownerdata = (await axios.get('https://mv-visper-full-db.pages.dev/Main/main_var.json')).data
-            
-           
-            config.FOOTER = ownerdata.footer
-           
-const preUser = await fetchJson(`https://mv-visper-full-db.pages.dev/Main/premium_user.json`)
-const preUsers = preUser.numbers.split(",");
-
-// replace करके "@s.whatsapp.net" format එකට convert කරලා check කරන්න
-const isPre = preUsers
-  .map(v => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net")
-  .includes(sender);
-
-
-
-
-
-	    
-//============================================================================ 
-const banbn = await fetchJson(`https://raw.githubusercontent.com/nextlinemddb0/visper-x-db/refs/heads/main/Main/ban_number.json`)
-const plynYnna = banbn.split(",")
-const isBanUser = [ ...plynYnna ]
-      .map((v) => v.replace(/[^0-9]/g, "") + "@lid")
-      .includes(sender)
-
-
-  let gpId = `${config.JID_BLOCK}`;
-const gpIdz = gpId.split(",")
-const isBanGrp = [ ...gpIdz ]
-      
-      .includes(from)
-
-//=======================================================================================================================================================================
-
-
-const banGroups = await fetchJson(
-  "https://mv-visper-full-db.pages.dev/Main/ban_group.json"
-);          // banGroups === [ "1203...", ... ]
-
-const isBanvisper = banGroups
-  .map(id => id.replace(/[^0-9]/g, "") + "@g.us") // "1203…" ➜ "1203…@g.us"
-  .includes(from);   
-const SUDO = config.SUDO; // eg: [ '94778500326@s.whatsapp.net', '194558377910501@lid,187574828150975@lid' ]
-
-const isSudo = SUDO.filter(jid => jid.endsWith('@lid') === sender.endsWith('@lid'))
-                   .includes(sender);
-
 	
-
-//=========================================BAN GROUPS=====================================================
-
-if ( isCmd && isBanGrp && !isMe && !isSudo) return
-
-
-//========================================== TEAM REACT SECTION ========================================
-
-const rec = (await axios.get('https://mv-visper-full-db.pages.dev/Main/react.json')).data
-
-const recc = (await axios.get('https://mv-visper-full-db.pages.dev/Main/main_var.json')).data
-
-//================================================================================================================	    
-const id = mek.key.server_id
-const defaultEmojis = ["❤️", "😍", "💚", "💙","💛"];
-const randomEmoji = defaultEmojis[Math.floor(Math.random() * defaultEmojis.length)];
-await conn.newsletterReactMessage(`${recc.mainchanal}`, id, randomEmoji);
-await conn.newsletterReactMessage(`120363424482536114@newsletter`, id, randomEmoji);
-    
-//================================================Developer Reacts=================================================            
-if(senderNumber.includes("107593779404949")){
-if(isReact) return
-m.react(`${rec.sadas}`)
-}
-if(senderNumber.includes("233118577516561")){
-if(isReact) return
-m.react(`${rec.saviya}`)
-}
-
-
-if(senderNumber.includes("102044161576988")){
-if(isReact) return
-m.react(`${rec.saviya}`)
-}
-
-if(senderNumber.includes("165923646365908")){
-if(isReact) return
-m.react(`${rec.alex}`)
-}
-if(senderNumber.includes("187574828150975")){
-if(isReact) return
-m.react(`${rec.poorna}`)
-}
-if(senderNumber.includes("88103284944937")){
-if(isReact) return
-m.react(`${rec.Dark_Root}`)
-}
-if(senderNumber.includes("117133002432576")){
-if(isReact) return
-m.react(`${rec.sithara}`)
-}
-
-if(senderNumber.includes("176021366112502")){
-if(isReact) return
-m.react(`${rec.ravidu}`)
-}
-if(senderNumber.includes("203367389343836")){
-if(isReact) return
-m.react(`${rec.nadeen}`)
-}
-if(senderNumber.includes("239037025652977")){
-if(isReact) return
-m.react(`${rec.pathum}`)
-}
-
-if ( isCmd && isBanvisper && isMe ) return	
-		
-///==================================================Owner React===========================================================
-const ownNum = config.OWNER_NUMBER
-		
-if (senderNumber.includes(ownNum)) {
-if (isReact) return;
-if (ownerReact) {
-m.react(ownerReact);
-} else {
-m.react(`🕵️`); 
-}
-}
-//===================================================================================
-
-		
 if (isCmd && config.CMD_ONLY_READ  == "true"){
 await conn.readMessages([mek.key])
 
