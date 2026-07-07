@@ -695,7 +695,45 @@ async (conn, mek, m, {
   }
 });
 
+{
+  pattern: "addnum",
+  react: "📞",
+  desc: "Add a number to NUM list",
+  category: "owner",
+  filename: __filename
+},
+async (conn, mek, m, {
+  from, isMe, isOwner, q, reply
+}) => {
+  try {
+    if (!isMe && !isOwner) return await reply("*OWNER COMMAND ⛔*");
+    if (!q) return await reply("*Please provide a number, e.g. 94771234567*");
 
+    const newNum = q.replace(/\D/g, ""); // Numbers only
+
+    let list = await get("NUM");
+    if (!Array.isArray(list)) list = [];
+
+    if (list.includes(newNum)) {
+      return await reply(`*${newNum} is already in the NUM list ✅*`);
+    }
+
+    list.push(newNum);
+    await input("NUM", list);
+
+    await reply(`*✅ Added ${newNum} to the NUM list.*`);
+    await conn.sendMessage(from, {
+      react: { text: "✔", key: mek.key }
+    });
+
+  } catch (e) {
+    console.error(e);
+    await conn.sendMessage(from, {
+      react: { text: "❌", key: mek.key }
+    });
+    await reply(`❌ *Error occurred!*\n\n${e}`);
+  }
+});
 
 
 cmd({
