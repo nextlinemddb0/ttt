@@ -829,6 +829,7 @@ conn.ev.on("call", async (json) => {
             .replace(/\D/g, "");
 
         console.log("CALLER:", caller);
+		console.log(Object.keys(conn.signalRepository || {}));
         console.log("ALLOWED:", allowedNumbers);
 console.log("FULL CALL:", JSON.stringify(call, null, 2));
         // config.NUM වල තියෙන numbers allow කරන්න
