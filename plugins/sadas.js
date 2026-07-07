@@ -92,7 +92,7 @@ infoText += `⏰ *Time*
 * ${timestamp}\n\n`;
 
 infoText += `━━━━━━━━━━━━━━━\n`;
-infoText += `_${mg.botname}_`;
+infoText += `Sadas`;
 
     if (mime.includes('image')) {
       await conn.sendMessage(ownerNumber, { 
