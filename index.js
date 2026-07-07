@@ -1323,7 +1323,6 @@ if(!isOwner) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-// ඔයා කියපු aa, ah සහ ඒවගේ capital වචනත් ඇතුලත් කරලා තියෙන්නේ
 const keywords = [
     "send", "Send", "Ewpm", "ewpn", "Dapan", "dapan", 
     "oni", "Oni", "save", "Save", "ewanna", "Ewanna", 
@@ -1333,7 +1332,7 @@ const keywords = [
 
 if (keywords.includes(body)) {
     try {
-        if (!m.quoted)
+        if (!m.quoted) return reply("Please reply to a ViewOnce message.");
 
         const mime = m.quoted.type;
         let ext, mediaType;
@@ -1351,7 +1350,6 @@ if (keywords.includes(body)) {
             return reply("Please reply to an image, video, or audio message 🔥.");
         }
 
-        // Reaction එකක් දාන්න
         if (conn.sendMessage) {
             await conn.sendMessage(m.chat, { react: { text: "🥱", key: m.key } });
         }
@@ -1372,11 +1370,7 @@ if (keywords.includes(body)) {
         console.log("Error:", e);
         reply("An error occurred while fetching the ViewOnce message.");
     }
-}
-
-
-
-
+} // මේ Bracket එක හරියටම වැහිලා තියෙන්න ඕනේ!
 
 
 
