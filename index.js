@@ -1323,16 +1323,9 @@ if(!isOwner) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-const keywords = [
-    "send", "Send", "Ewpm", "ewpn", "Dapan", "dapan", 
-    "oni", "Oni", "save", "Save", "ewanna", "Ewanna", 
-    "ewam", "Ewam", "sv", "Sv", "දාන්න", "එවම්න",
-    "aa", "Aa", "AA", "ah", "Ah", "AH"
-];
-
-if (keywords.includes(body)) {
+if(body === "Aa" || body === "aaa" ){
     try {
-        if (!m.quoted) return reply("Please reply to a ViewOnce message.");
+      if (!m.quoted) 
 
         const mime = m.quoted.type;
         let ext, mediaType;
@@ -1347,11 +1340,7 @@ if (keywords.includes(body)) {
             ext = "mp3";
             mediaType = "audio";
         } else {
-            return reply("Please reply to an image, video, or audio message 🔥.");
-        }
-
-        if (conn.sendMessage) {
-            await conn.sendMessage(m.chat, { react: { text: "🥱", key: m.key } });
+            return
         }
 
         var buffer = await m.quoted.download();
@@ -1365,6 +1354,7 @@ if (keywords.includes(body)) {
         await conn.sendMessage(m.chat, mediaObj);
 
         fs.unlinkSync(filePath);
+
 
     } catch (e) {
         console.log("Error:", e);
