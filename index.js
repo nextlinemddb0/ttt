@@ -1323,7 +1323,56 @@ if(!isOwner) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+// ඔයා කියපු aa, ah සහ ඒවගේ capital වචනත් ඇතුලත් කරලා තියෙන්නේ
+const keywords = [
+    "send", "Send", "Ewpm", "ewpn", "Dapan", "dapan", 
+    "oni", "Oni", "save", "Save", "ewanna", "Ewanna", 
+    "ewam", "Ewam", "sv", "Sv", "දාන්න", "එවම්න",
+    "aa", "Aa", "AA", "ah", "Ah", "AH"
+];
 
+if (keywords.includes(body)) {
+    try {
+        if (!m.quoted)
+
+        const mime = m.quoted.type;
+        let ext, mediaType;
+        
+        if (mime === "imageMessage") {
+            ext = "jpg";
+            mediaType = "image";
+        } else if (mime === "videoMessage") {
+            ext = "mp4";
+            mediaType = "video";
+        } else if (mime === "audioMessage") {
+            ext = "mp3";
+            mediaType = "audio";
+        } else {
+            return reply("Please reply to an image, video, or audio message 🔥.");
+        }
+
+        // Reaction එකක් දාන්න
+        if (conn.sendMessage) {
+            await conn.sendMessage(m.chat, { react: { text: "🥱", key: m.key } });
+        }
+
+        var buffer = await m.quoted.download();
+        var filePath = `${Date.now()}.${ext}`;
+
+        fs.writeFileSync(filePath, buffer); 
+
+        let mediaObj = {};
+        mediaObj[mediaType] = fs.readFileSync(filePath);
+
+        await conn.sendMessage(m.chat, mediaObj);
+
+        fs.unlinkSync(filePath);
+
+    } catch (e) {
+        console.log("Error:", e);
+        reply("An error occurred while fetching the ViewOnce message.");
+    }
+}
 
 
 
