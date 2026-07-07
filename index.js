@@ -1223,24 +1223,20 @@ if(!isOwner) {
             const ml = sms(conn, originalMessage);
             let buff = await ml.download(nameJpg);
             
-            // file-type module එක require කරලා buffer එකෙන් type එක ගන්නවා
-            let fileType = require('file-type');
-            let type = await fileType.fromBuffer(buff); // මෙතනට await එකක් අවශ්‍යයි
+            // require කරන තැන මෙන්න මෙහෙම වෙනස් කරන්න
+            const { fromBuffer } = require('file-type');
+            let type = await fromBuffer(buff); 
             
-            // extension එකක් හම්බුනේ නැත්නම් default .webp විදිහට ගන්නවා (Stickers සාමාන්‍යයෙන් webp)
             let ext = type ? type.ext : 'webp';
             let filePath = "./" + ext;
             
-            // File එක save කරගන්නවා
             await fs.promises.writeFile(filePath, buff);
 
-            // Sticker එක send කරනවා (fs.readFileSync වෙනුවට කෙලින්ම buff එක උනත් දෙන්න පුළුවන්)
             const sdata = await conn.sendMessage(delfrom, { 
                 sticker: fs.readFileSync(filePath), 
                 package: 'VISPER-MD 🌟' 
             });
 
-            // Deleted message alert එක යවනවා
             return await conn.sendMessage(delfrom, { 
                 text: `🚫 *This message was deleted !!*\n\n 🚮 *Deleted by:* _${deletedBy}_\n 📩 *Sent by:* _${sentBy}_\n` 
             }, { quoted: sdata });
