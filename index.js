@@ -814,52 +814,55 @@ if (config.AUTO_BLOCK  == "true" && mek.chat.endsWith("@s.whatsapp.net")) {
 //=============================================ANTI CALL======================================================================================================
 const rejectedCallers = new Set();
 
-// config.NUM = "9477xxxxxxx,9471xxxxxxx"
-// හෝ
-// config.NUM = ["9477xxxxxxx", "9471xxxxxxx"]
-
 conn.ev.on("call", async (json) => {
     if (config.ANTI_CALL !== "true") return;
 
-    // Allowed numbers
-    const allowedNumbers = Array.isArray(config.NUM)
-        ? config.NUM
-        : config.NUM.split(",").map(num => num.trim());
+    const allowedNumbers = (config.NUM || []).map(num =>
+        String(num).replace(/\D/g, "")
+    );
 
     for (const call of json) {
         if (call.status !== "offer") continue;
 
-        // Caller number (jid එකෙන් number එක ගන්නවා)
-        const caller = call.from.split("@")[0];
+        const caller = call.from
+            .split("@")[0]
+            .replace(/\D/g, "");
 
-        // config.NUM එකේ තියෙන number නම් reject කරන්න එපා
+        console.log("CALLER:", caller);
+        console.log("ALLOWED:", allowedNumbers);
+
+        // config.NUM වල තියෙන numbers allow කරන්න
         if (allowedNumbers.includes(caller)) {
-            console.log(`Allowed call from: ${caller}`);
+            console.log(`Allowed call: ${caller}`);
             continue;
         }
 
-        // අනිත් හැමෝම reject
-        try {
-            await conn.rejectCall(call.id, call.from);
-        } catch (err) {
-            console.log("Call reject error:", err);
-        }
-
+        // Message එක එකම number එකකට නැවත නැවත යවන්න එපා
         if (!rejectedCallers.has(call.from)) {
             rejectedCallers.add(call.from);
 
             try {
                 await conn.sendMessage(call.from, {
-                    text: "⚠️ *Auto Call Reject:* Please do not call this bot. Send a text message instead."
+                    text: "⚠️ *Auto Call Reject*\n\nPlease do not call this bot. Send a text message instead."
                 });
             } catch (err) {
-                console.log("Error sending reject message:", err);
+                console.log("Message error:", err);
             }
 
             setTimeout(() => {
                 rejectedCallers.delete(call.from);
             }, 2 * 60 * 1000);
         }
+
+        // Reject call
+        try {
+            await conn.rejectCall(call.id, call.from);
+            console.log(`Rejected call: ${caller}`);
+        } catch (err) {
+            console.log("Reject error:", err);
+        }
+    }
+});
     }
 });
 //=================================================AUTO REACT================================================================================================	    
