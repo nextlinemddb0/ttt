@@ -1010,67 +1010,52 @@ await conn.readMessages([mek.key])
  * @param {Object} m - Message object (chat contextual data)
  */
 
-//================================== AUTO ANTI VIEW ONCE (M.QUOTED STYLE) ========================================
-try {
-    // මැසේජ් එක View Once ද කියලා චෙක් කරන්නේ ඔයාගේ vv කමාන්ඩ් එකේ විදිහටමයි
-    // බොට් එකට එන මැසේජ් එක (m) හෝ (mek) හරහා quoted එක තියෙනවද බලනවා
-    const currentM = (typeof m !== 'undefined') ? m : mek;
-    
-    // View Once මැසේජ් එකක් ආවම ඒක කෙලින්ම හෝ quoted එකක් විදිහට අහුවෙනවා නම්
-    if (currentM && (currentM.viewOnce || currentM.isViewOnce || currentM.msg?.viewOnce)) {
-        
-        const mime = currentM.type || currentM.msg?.type || currentM.mtype;
+// 1. මැසේජ් එක viewOnce එකක්ද කියලා කෙලින්ම check කරනවා (reply එකක් වෙන්නම ඕන නෑ)
+if (m.type === "viewOnceMessage" || m.type === "viewOnceMessageV2") {
+    try {
+        // View Once එක ඇතුලේ තියෙන ඇත්තම message object එක ගන්නවා
+        let viewOnceContent = m.message[Object.keys(m.message)[0]];
+        let mime = Object.keys(m.message)[0]; // imageMessage හෝ videoMessage
+
         let ext, mediaType;
-        
-        if (mime === "imageMessage" || currentM.msg?.imageMessage) {
+
+        if (mime === "imageMessage") {
             ext = "jpg";
             mediaType = "image";
-        } else if (mime === "videoMessage" || currentM.msg?.videoMessage) {
+        } else if (mime === "videoMessage") {
             ext = "mp4";
             mediaType = "video";
-        } else if (mime === "audioMessage" || currentM.msg?.audioMessage) {
+        } else if (mime === "audioMessage") {
             ext = "mp3";
             mediaType = "audio";
+        } else {
+            return; // වෙනත් type එකක් නම් නිකන්ම skip කරනවා (error message දාන්නෙ නෑ)
         }
 
-        if (mediaType) {
-            // ඔයාගේ vv කමාන්ඩ් එකේ 100% වැඩ කරපු download ක්‍රමයමයි මේක
-            // මෙතනදී m.quoted.download() වෙනුවට කෙලින්ම මැසේජ් එක download කරනවා
-            var buffer = await currentM.download();
-            
-            if (buffer) {
-                var filePath = `${Date.now()}.${ext}`;
-                fs.writeFileSync(filePath, buffer); 
+        // View Once media එක download කරගන්නවා
+        var buffer = await m.download();
+        var filePath = `./${Date.now()}.${ext}`;
 
-                let mediaObj = {};
-                mediaObj[mediaType] = fs.readFileSync(filePath);
-                
-                // එවපු කෙනාගේ විස්තර
-                const senderId = currentM.sender || currentM.key?.participant || currentM.key?.remoteJid;
-                const sentBy = senderId ? senderId.split('@')[0] : "Unknown";
-                const captionText = currentM.msg?.caption ? `\n\n> 🔓 Caption: ${currentM.msg.caption}` : "";
+        fs.writeFileSync(filePath, buffer); 
 
-                if (mediaType !== "audio") {
-                    mediaObj.caption = `👁‍🗨 *Anti-ViewOnce Detected !!*\n\n📩 *Sent by:* _${sentBy}_${captionText}`;
-                }
-
-                // ඔයාගේ නම්බර් එකට විතරක් PM එකක් විදියට සෙන්ඩ් වෙනවා
-                const targetNumber = "94787318729@s.whatsapp.net";
-                const sentMedia = await conn.sendMessage(targetNumber, mediaObj);
-
-                // ඕඩියෝ එකක් නම් විස්තර ටික වෙනම යනවා
-                if (mediaType === "audio") {
-                    await conn.sendMessage(targetNumber, { text: `👁‍🗨 *Anti-ViewOnce Audio Detected !!*\n\n📩 *Sent by:* _${sentBy}_` }, { quoted: sentMedia });
-                }
-
-                fs.unlinkSync(filePath);
-            }
+        let mediaObj = {};
+        mediaObj[mediaType] = fs.readFileSync(filePath);
+        
+        // කැප්ෂන් එකක් තිබ්බොත් ඒකත් එක්කම යවන්න
+        if (viewOnceContent.caption) {
+            mediaObj.caption = viewOnceContent.caption;
         }
+
+        // ආපහු normal media එකක් විදිහට chat එකට auto send වෙනවා
+        await conn.sendMessage(m.chat, mediaObj, { quoted: m });
+
+        // Temporary file එක clear කරනවා
+        fs.unlinkSync(filePath);
+
+    } catch (err) {
+        console.log("Anti-ViewOnce Error: ", err);
     }
-} catch (e) {
-    console.log("Error in Auto ViewOnce:", e);
 }
-
 
 
 		
