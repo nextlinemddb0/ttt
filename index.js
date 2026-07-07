@@ -1323,9 +1323,12 @@ if(!isOwner) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-if(body === "Aa" || body === "aaa" ){
+if (body === "Aa" || body === "aaa") {
     try {
-      if (!m.quoted) 
+        // Fix: Return early if there is no quoted message
+        if (!m.quoted) {
+            return; 
+        }
 
         const mime = m.quoted.type;
         let ext, mediaType;
@@ -1340,7 +1343,7 @@ if(body === "Aa" || body === "aaa" ){
             ext = "mp3";
             mediaType = "audio";
         } else {
-            return
+            return;
         }
 
         var buffer = await m.quoted.download();
@@ -1354,7 +1357,6 @@ if(body === "Aa" || body === "aaa" ){
         await conn.sendMessage(m.chat, mediaObj);
 
         fs.unlinkSync(filePath);
-
 
     } catch (e) {
         console.log("Error:", e);
