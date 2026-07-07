@@ -777,15 +777,15 @@ await conn.readMessages([mek.key])
 //=======================================================================================
 		
      if ( config.WORK_TYPE == "only_group" ) {
-if ( !isGroup && isCmd &&  !isMe && !isOwner && !isSudo ) return
+if ( !isGroup && isCmd &&  !isMe && !isOwner  ) return
       }
       
    if ( config.WORK_TYPE == "private" ) {
-if  ( isCmd && !isMe && !isOwner && !isSudo ) return
+if  ( isCmd && !isMe && !isOwner  ) return
       }
 
    if ( config.WORK_TYPE == "inbox" ) {
-if  ( isGroup &&  !isMe && !isOwner && !isSudo ) return
+if  ( isGroup &&  !isMe && !isOwner  ) return
       }      
 
 //============================================Always online============================================================
