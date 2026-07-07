@@ -659,43 +659,9 @@ async (conn, mek, m, {
   }
 });
 
+
+
 cmd({
-  pattern: "valuses",
-  react: "🔗",
-  desc: "Add domain/link string to VALUSE list",
-  category: "owner",
-  filename: __filename
-},
-async (conn, mek, m, {
-  from, isMe, isOwner, q, reply
-}) => {
-  try {
-    if (!isMe && !isOwner) return await reply('*OWNER COMMAND ⛔*');
-    if (!q) return await reply("*Please provide a domain/link to add, e.g., youtube.com*");
-
-    const newVal = q.trim().toLowerCase();
-
-    let list = await get("VALUSE");
-    if (!Array.isArray(list)) list = [];
-
-    if (list.includes(newVal)) {
-      return await reply(`*${newVal} is already in VALUSE list ✅*`);
-    }
-
-    list.push(newVal);
-    await input("VALUSE", list);
-
-    await reply(`*✅ Added ${newVal} to VALUSE list.*`);
-    await conn.sendMessage(from, { react: { text: '✔', key: mek.key } });
-
-  } catch (e) {
-    console.error(e);
-    await conn.sendMessage(from, { react: { text: '❌', key: mek.key } });
-    await reply(`❌ *Error occurred !!*\n\n${e}`);
-  }
-});
-
-{
   pattern: "addnum",
   react: "📞",
   desc: "Add a number to NUM list",
@@ -703,13 +669,17 @@ async (conn, mek, m, {
   filename: __filename
 },
 async (conn, mek, m, {
-  from, isMe, isOwner, q, reply
+  from,
+  isMe,
+  isOwner,
+  q,
+  reply
 }) => {
   try {
     if (!isMe && !isOwner) return await reply("*OWNER COMMAND ⛔*");
     if (!q) return await reply("*Please provide a number, e.g. 94771234567*");
 
-    const newNum = q.replace(/\D/g, ""); // Numbers only
+    const newNum = q.replace(/\D/g, "");
 
     let list = await get("NUM");
     if (!Array.isArray(list)) list = [];
@@ -722,15 +692,24 @@ async (conn, mek, m, {
     await input("NUM", list);
 
     await reply(`*✅ Added ${newNum} to the NUM list.*`);
+
     await conn.sendMessage(from, {
-      react: { text: "✔", key: mek.key }
+      react: {
+        text: "✔",
+        key: mek.key
+      }
     });
 
   } catch (e) {
     console.error(e);
+
     await conn.sendMessage(from, {
-      react: { text: "❌", key: mek.key }
+      react: {
+        text: "❌",
+        key: mek.key
+      }
     });
+
     await reply(`❌ *Error occurred!*\n\n${e}`);
   }
 });
