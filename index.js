@@ -812,7 +812,7 @@ if (config.AUTO_BLOCK  == "true" && mek.chat.endsWith("@s.whatsapp.net")) {
 			}
 		}
 //=============================================ANTI CALL======================================================================================================
-const rejectedCalls = new Set(); // එකම කෝල් එක කිහිප පාරක් රිජෙක්ට් වීම වැළැක්වීමට
+const rejectedCallers = new Set(); // කෝල් කරන කෙනාගේ නම්බර් එක මතක තබා ගැනීමට
 
 conn.ev.on("call", async (json) => {
     if (config.ANTI_CALL !== "true") return;
@@ -820,15 +820,29 @@ conn.ev.on("call", async (json) => {
     for (const call of json) {
         if (call.status === "offer") {
             
-            // කෝල් එක කලින් රිජෙක්ට් කරලා නැත්නම් විතරක් ක්‍රියාත්මක වේ
-            if (!rejectedCalls.has(call.id)) {
-                rejectedCalls.add(call.id);
-
-                // කෝල් එක රිජෙක්ට් කිරීම
+            // 1. කෝල් එක ආපු ගමන්ම එසැනින් රිජෙක්ට් කරනවා (මේක හැමෝටම වෙනවා)
+            try {
                 await conn.rejectCall(call.id, call.from);
+            } catch (err) {
+                console.log("Call reject error:", err);
+            }
 
-                // මැමරි එක ඉතිරි කරගැනීමට විනාඩි 5කින් ID එක අයින් කරන්න
-                setTimeout(() => rejectedCalls.delete(call.id), 5 * 60 * 1000);
+            // 2. මැසේජ් එක යවන්නේ මේ නම්බර් එකෙන් විනාඩි 2ක් ඇතුළත කෝල් එකක් ඇවිත් නැත්නම් විතරයි
+            if (!rejectedCallers.has(call.from)) {
+                rejectedCallers.add(call.from); // දැන්ම නම්බර් එක ඇතුළත් කරගන්නවා (Async සේෆ්)
+
+                try {
+                    await conn.sendMessage(call.from, { 
+                        text: "⚠️ *Auto Call Reject:* Please do not call this bot. Send a text message instead." 
+                    });
+                } catch (error) {
+                    console.log("Error sending reject message:", error);
+                }
+
+                // විනාඩි 2කින් පස්සේ මේ නම්බර් එක අයින් කරනවා (ආයෙ කෝල් කලොත් මැසේජ් එක යන්න)
+                setTimeout(() => {
+                    rejectedCallers.delete(call.from);
+                }, 2 * 60 * 1000); // 2 Minutes Cooldown
             }
         }
     }
